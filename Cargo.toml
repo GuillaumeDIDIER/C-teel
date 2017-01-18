@@ -1,0 +1,6 @@
+[package]
+name = "C-teel"
+version = "0.1.0"
+authors = ["Guillaume DIDIER <guillaume.didier@polytechnique.edu>"]
+
+[dependencies]
