@@ -1,6 +1,7 @@
 [package]
-name = "C-teel"
+name = "C_teel"
 version = "0.1.0"
 authors = ["Guillaume DIDIER <guillaume.didier@polytechnique.edu>"]
 
 [dependencies]
+nom = "^2.0"
