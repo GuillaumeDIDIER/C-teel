@@ -2,7 +2,7 @@
 use std::vec;
 use std::boxed;
 
-pub type Ident<'a> = &'a str;
+pub type Ident =  String;
 
 pub enum UnaryOp{
     Not,
@@ -25,46 +25,46 @@ enum BinaryOp{
     Or,
 }
 
-enum Param<'a>{
-    Int(Ident<'a>),
-    Struct(Ident<'a>),
+enum Param {
+    Int(Ident),
+    Struct(Ident),
 }
 
-enum Expression<'a>{
+enum Expression {
     int(i32),
-    Ident(Ident<'a>),
-    MembDeref(Box<Expression<'a>>, Ident<'a>),
-    Call(Ident<'a>, Vec<Expression<'a>>),
-    Unary(UnaryOp, Box<Expression<'a>>),
-    Binary(Box<Expression<'a>>, BinaryOp, Box<Expression<'a>>),
-    Sizeof(Ident<'a>),
-    Parens(Vec<Expression<'a>>),
+    Ident(Ident),
+    MembDeref(Box<Expression>, Ident),
+    Call(Ident, Vec<Expression>),
+    Unary(UnaryOp, Box<Expression>),
+    Binary(Box<Expression>, BinaryOp, Box<Expression>),
+    Sizeof(Ident),
+    Parens(Vec<Expression>),
 }
 
-type DeclType<'a> = (Ident<'a>, Vec<DeclVar<'a>>);
+type DeclType = (Ident, Vec<DeclVar>);
 
-enum DeclVar<'a>{
-    Int(Vec<Ident<'a>>),
-    Struct(Ident<'a>, Vec<Ident<'a>>),
+enum DeclVar {
+    Int(Vec<Ident>),
+    Struct(Ident, Vec<Ident>),
 }
 
-enum DeclFunc<'a>{
-    Int(Ident<'a>, Vec<Param<'a>>, Bloc<'a>)
+enum DeclFunc {
+    Int(Ident, Vec<Param>, Bloc)
 }
 
-enum Declaration<'a> {
-    Var(DeclVar<'a>),
-    Type(DeclType<'a>),
-    Func(DeclFunc<'a>),
+enum Declaration {
+    Var(DeclVar),
+    Type(DeclType),
+    Func(DeclFunc),
 }
 
-type Bloc<'a> = (Vec<DeclVar<'a>>,Vec<Statement<'a>>);
+type Bloc = (Vec<DeclVar>,Vec<Statement>);
 
-enum Statement<'a> {
-    Expr(Expression<'a>),
-    If(Expression<'a>, Box<Statement<'a>>),
-    IfElse(Expression<'a>, Box<Statement<'a>>, Box<Statement<'a>>),
-    While(Expression<'a>, Box<Statement<'a>>),
-    Return(Expression<'a>),
-    Bloc(Bloc<'a>),
+enum Statement {
+    Expr(Expression),
+    If(Expression, Box<Statement>),
+    IfElse(Expression, Box<Statement>, Box<Statement>),
+    While(Expression, Box<Statement>),
+    Return(Expression),
+    Bloc(Bloc),
 }
