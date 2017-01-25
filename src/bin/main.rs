@@ -4,7 +4,7 @@ extern crate nom;
 use C_teel::parse;
 use C_teel::parse::ast;
 use nom::IResult;
-use std::boxed;
+//use std::boxed;
 
 fn main() {
     assert!(match parse::lexer::integer("0"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 0 && rem == &""[..], _ => false});
@@ -17,10 +17,9 @@ fn main() {
     //    _ => false
     //};
     //assert!(res);
-    match parse::parser::statement("a = b ;") {
+    match parse::parser::statement("{int a; a; return a;}") {
         IResult::Done(_,_) => println!("OK"),
         IResult::Incomplete(_) => println!("INC"),
         _ => println!("BAD", ),
     }
-    println!("Hello, world!");
 }

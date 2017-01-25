@@ -1,6 +1,6 @@
 
-use std::vec;
-use std::boxed;
+//use std::vec;
+//use std::boxed;
 
 pub type Ident =  String;
 
@@ -30,7 +30,7 @@ pub enum BinaryOp{
 #[derive(Clone)]
 pub enum Param {
     Int(Ident),
-    Struct(Ident),
+    Struct(Ident, Ident),
 }
 
 #[derive(Clone)]
@@ -55,7 +55,8 @@ pub enum DeclVar {
 
 #[derive(Clone)]
 pub enum DeclFunc {
-    Int(Ident, Vec<Param>, Bloc)
+    Int(Ident, Vec<Param>, Bloc),
+    Struct(Ident, Ident, Vec<Param>, Bloc),
 }
 
 #[derive(Clone)]

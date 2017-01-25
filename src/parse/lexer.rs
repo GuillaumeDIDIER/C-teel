@@ -1,7 +1,7 @@
 use parse::ast;
-use std::vec;
+//use std::vec;
 //use std::string;
-use nom::{multispace, IResult};
+use nom::multispace;
 
 named!(comment<&str, &str>,
     do_parse!(
@@ -84,7 +84,6 @@ named!(pub binary_op_eq<&str, ast::BinaryOp>, alt!(
 
 
 // Keywords :
-named!(pub kwd_EOF <&str, &str>, tag_s!("$") );
 named!(pub kwd_int <&str, &str>, tag_s!("int") );
 named!(pub kwd_struct <&str, &str>, tag_s!("struct") );
 named!(pub kwd_sizeof <&str, &str>, tag_s!("sizeof") );
@@ -94,8 +93,8 @@ named!(pub kwd_while <&str, &str>, tag_s!("while") );
 named!(pub kwd_return <&str, &str>, tag_s!("return") );
 
 // Identifiers
-fn checkKeyword(id: &str) -> Option<String> {
-    let kwds = vec!["int", "struct"];
+fn check_keyword(id: &str) -> Option<String> {
+    let kwds = vec!["int", "struct", "sizeof", "if", "else", "while", "return"];
     if kwds.contains(&id) {
         None
     } else {
@@ -106,7 +105,7 @@ fn checkKeyword(id: &str) -> Option<String> {
 named!(pub identifier <&str, ast::Ident >,
     do_parse!(
         as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
-        res: expr_opt!(checkKeyword(as_str)) >>
+        res: expr_opt!(check_keyword(as_str)) >>
         (res)
     )
 );

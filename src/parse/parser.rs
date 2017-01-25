@@ -1,14 +1,82 @@
 
 use parse::ast;
-use std::vec;
-use nom::{multispace, IResult};
+//use std::vec;
+
 
 use parse::lexer::*;
 
 
-pub fn parse(code : &str) -> Vec<ast::Declaration> {
-    return vec!();
-}
+named!(pub file<&str, Vec<ast::Declaration> >,
+    terminated!(
+        many0!(decl)
+        , eof!()
+));
+
+// Declarations
+// Variable declaration
+named!(pub decl_vars<&str, ast::DeclVar>, alt_complete!(
+    do_parse!(kwd_int >> ids: separated_nonempty_list!(tag_s!(","), identifier) >> tag_s!(";") >> (ast::DeclVar::Int(ids)))
+    | do_parse!(
+        kwd_struct >> id: identifier >>
+        ids: separated_nonempty_list!(tag_s!(","), preceded!(tag_s!("*"), identifier)) >> tag_s!(";") >>
+        (ast::DeclVar::Struct(id, ids)))
+));
+
+// Type
+named!(pub decl_typ<&str, ast::DeclType>, do_parse!(
+    kwd_struct >> id: identifier >> tag_s!("{") >>
+    vars: many0!(decl_vars) >>
+    tag_s!("}") >> tag_s!(";") >>
+    ((id, vars))
+));
+
+// Function
+//   Parameter (aux)
+named!(param<&str, ast::Param>, alt_complete!(
+    do_parse!(
+        kwd_int >> id: identifier >> (ast::Param::Int(id))
+    )
+    |
+    do_parse!(
+        kwd_struct >> typ: identifier >> tag_s!("*") >> id: identifier >> (ast::Param::Struct(typ, id))
+    )
+));
+
+
+named!(decl_fct_aux<&str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, do_parse!(
+    id: identifier >>
+    tag_s!("(") >>
+    params: separated_list!(tag_s!(","), param) >>
+    tag_s!(")") >>
+    blk: bloc >>
+    ((id, params, blk))
+));
+
+named!(pub decl_fct<&str, ast::DeclFunc>, alt_complete!(
+    do_parse!(
+        kwd_int >> funct: decl_fct_aux >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
+    )
+    |
+    do_parse!(
+        kwd_struct >> id: identifier >> tag_s!("*") >> funct: decl_fct_aux >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
+    )
+));
+
+// All decl
+named!(decl<&str, ast::Declaration>, alt_complete!(
+    do_parse!(v: decl_vars >> (ast::Declaration::Var(v)))
+    | do_parse!(f: decl_fct >> (ast::Declaration::Func(f)))
+    | do_parse!(t: decl_typ >> (ast::Declaration::Type(t)))
+));
+
+
+// Bloc
+named!(pub bloc<&str, ast::Bloc>, do_parse!(
+    tag_s!("{") >>
+    vars: many0!(decl_vars) >>
+    stmts: many0!(statement) >>
+    ((vars,stmts))
+));
 
 // Statements
 named!(pub statement<&str, ast::Statement>, sp!(alt_complete!(
@@ -24,8 +92,14 @@ named!(pub statement<&str, ast::Statement>, sp!(alt_complete!(
         kwd_if >> tag_s!("(") >> cond: expr>> tag_s!(")") >>
         if_s: statement >>
         (ast::Statement::If(cond, Box::new(if_s))))
-
-//    |
+    | do_parse!(
+        kwd_while >> tag_s!("(") >> cond: expr>> tag_s!(")") >>
+        while_s: statement >>
+        (ast::Statement::While(cond, Box::new(while_s))))
+    | do_parse!(
+        kwd_return >> val: expr >> tag_s!(";") >>
+        (ast::Statement::Return(val)))
+    | do_parse!(blk: bloc >> (ast::Statement::Bloc(blk)))
 )));
 
 // Expressions
@@ -183,10 +257,6 @@ named!(pub or_expr<&str, ast::Expression>, sp!(do_parse!(
     (build_binop_left_assoc_tree(first, v))
     ))
 );
-
-fn test(lhs: ast::Expression, affect: Vec<ast::Expression>)-> ast::Expression {
-    lhs
-}
 
 named!(pub affect_expr<&str, ast::Expression>,alt_complete!(
     do_parse!(
