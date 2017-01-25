@@ -7,19 +7,19 @@ use parse::lexer::*;
 
 
 named!(pub file<&str, Vec<ast::Declaration> >,
-    terminated!(
+    sp!(terminated!(
         many0!(decl)
         , eof!()
-));
+)));
 
 // Declarations
 // Variable declaration
 named!(pub decl_vars<&str, ast::DeclVar>, alt_complete!(
-    do_parse!(kwd_int >> ids: separated_nonempty_list!(tag_s!(","), identifier) >> tag_s!(";") >> (ast::DeclVar::Int(ids)))
-    | do_parse!(
+    sp!(do_parse!(kwd_int >> ids: sp!(separated_nonempty_list!(tag_s!(","), sp!(identifier))) >> tag_s!(";") >> (ast::DeclVar::Int(ids))))
+    | sp!(do_parse!(
         kwd_struct >> id: identifier >>
         ids: separated_nonempty_list!(tag_s!(","), preceded!(tag_s!("*"), identifier)) >> tag_s!(";") >>
-        (ast::DeclVar::Struct(id, ids)))
+        (ast::DeclVar::Struct(id, ids))))
 ));
 
 // Type
@@ -32,7 +32,7 @@ named!(pub decl_typ<&str, ast::DeclType>, do_parse!(
 
 // Function
 //   Parameter (aux)
-named!(param<&str, ast::Param>, alt_complete!(
+named!(pub param<&str, ast::Param>, alt_complete!(
     do_parse!(
         kwd_int >> id: identifier >> (ast::Param::Int(id))
     )
@@ -43,7 +43,7 @@ named!(param<&str, ast::Param>, alt_complete!(
 ));
 
 
-named!(decl_fct_aux<&str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, do_parse!(
+named!(pub decl_fct_aux<&str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, do_parse!(
     id: identifier >>
     tag_s!("(") >>
     params: separated_list!(tag_s!(","), param) >>
@@ -63,7 +63,7 @@ named!(pub decl_fct<&str, ast::DeclFunc>, alt_complete!(
 ));
 
 // All decl
-named!(decl<&str, ast::Declaration>, alt_complete!(
+named!(pub decl<&str, ast::Declaration>, alt_complete!(
     do_parse!(v: decl_vars >> (ast::Declaration::Var(v)))
     | do_parse!(f: decl_fct >> (ast::Declaration::Func(f)))
     | do_parse!(t: decl_typ >> (ast::Declaration::Type(t)))
@@ -75,6 +75,7 @@ named!(pub bloc<&str, ast::Bloc>, do_parse!(
     tag_s!("{") >>
     vars: many0!(decl_vars) >>
     stmts: many0!(statement) >>
+    tag_s!("}") >>
     ((vars,stmts))
 ));
 

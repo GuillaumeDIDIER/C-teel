@@ -17,8 +17,8 @@ fn main() {
     //    _ => false
     //};
     //assert!(res);
-    match parse::parser::statement("{int a; a; return a;}") {
-        IResult::Done(_,_) => println!("OK"),
+    match parse::parser::file("struct a {int a, b; struct a*a;}; struct a * main(){if(a){return b;}else{if(b)return 0; return 1;}} int b(int a, struct a * b /*Test*/){return sizeof(struct a);}") {
+        IResult::Done(rem,_) => println!("OK{:?}", rem),
         IResult::Incomplete(_) => println!("INC"),
         _ => println!("BAD", ),
     }
