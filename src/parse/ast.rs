@@ -4,19 +4,21 @@ use std::boxed;
 
 pub type Ident =  String;
 
+#[derive(Clone)]
 pub enum UnaryOp{
     Not,
     Minus,
 }
 
-enum BinaryOp{
+#[derive(Clone)]
+pub enum BinaryOp{
     Affect,
     Equal,
     NotEqual,
     Lower,
     LowerEq,
     Greater,
-    GretaerEq,
+    GreaterEq,
     Plus,
     Minus,
     Mult,
@@ -25,46 +27,53 @@ enum BinaryOp{
     Or,
 }
 
-enum Param {
+#[derive(Clone)]
+pub enum Param {
     Int(Ident),
     Struct(Ident),
 }
 
-enum Expression {
-    int(i32),
+#[derive(Clone)]
+pub enum Expression {
+    Int(i64),
     Ident(Ident),
     MembDeref(Box<Expression>, Ident),
     Call(Ident, Vec<Expression>),
     Unary(UnaryOp, Box<Expression>),
     Binary(Box<Expression>, BinaryOp, Box<Expression>),
     Sizeof(Ident),
-    Parens(Vec<Expression>),
+    Parens(Box<Expression>),
 }
 
-type DeclType = (Ident, Vec<DeclVar>);
+pub type DeclType = (Ident, Vec<DeclVar>);
 
-enum DeclVar {
+#[derive(Clone)]
+pub enum DeclVar {
     Int(Vec<Ident>),
     Struct(Ident, Vec<Ident>),
 }
 
-enum DeclFunc {
+#[derive(Clone)]
+pub enum DeclFunc {
     Int(Ident, Vec<Param>, Bloc)
 }
 
-enum Declaration {
+#[derive(Clone)]
+pub enum Declaration {
     Var(DeclVar),
     Type(DeclType),
     Func(DeclFunc),
 }
 
-type Bloc = (Vec<DeclVar>,Vec<Statement>);
+pub type Bloc = (Vec<DeclVar>,Vec<Statement>);
 
-enum Statement {
+#[derive(Clone)]
+pub enum Statement {
     Expr(Expression),
     If(Expression, Box<Statement>),
     IfElse(Expression, Box<Statement>, Box<Statement>),
     While(Expression, Box<Statement>),
     Return(Expression),
     Bloc(Bloc),
+    Noop,
 }
