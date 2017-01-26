@@ -1,25 +1,48 @@
 extern crate C_teel;
 extern crate nom;
+extern crate clap;
 
 use C_teel::parse;
-use C_teel::parse::ast;
+//use C_teel::parse::ast;
 use nom::IResult;
+use clap::{Arg, App};
+use std::io::prelude::*;
+use std::fs::File;
+use std::process::exit;
 //use std::boxed;
 
-fn main() {
-    assert!(match parse::lexer::integer("0"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 0 && rem == &""[..], _ => false});
-    assert!(match parse::lexer::integer("1"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 1 && rem == &""[..], _ => false});
-    assert!(match parse::lexer::integer("10"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 10 && rem == &""[..], _ => false});
-    assert!(match parse::lexer::integer("0x10"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 16 && rem == &""[..], _ => false});
-    assert!(match parse::lexer::integer("011"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 9 && rem == &""[..], _ => false});
-    //let res = match parse::lexer::identifier(" a1 "){
-    //    IResult::Done(rem, i) => i == "a1" && rem == &""[..],
-    //    _ => false
-    //};
-    //assert!(res);
-    match parse::parser::file("struct a {int a, b; struct a*a;}; struct a * main(){if(a){return b;}else{if(b)return 0; return 1;}} int b(int a, struct a * b /*Test*/){return sizeof(struct a);}") {
-        IResult::Done(rem,_) => println!("OK{:?}", rem),
-        IResult::Incomplete(_) => println!("INC"),
-        _ => println!("BAD", ),
+fn main(){
+    let matches = App::new("C-teel")
+                              .version("0.0.1")
+                              .author("guillaume.didier@polytechnique.edu")
+                              .about("Compiles Badly a subset of C to x86_64")
+                              .arg(Arg::with_name("INPUT")
+                                   .help("Sets the input file to use")
+                                   .required(true)
+                                   .index(1))
+                              .arg(Arg::with_name("parse-only")
+                                   .long("parse-only")
+                                   .help("Only parse"))
+                              .get_matches();
+    let input = matches.value_of("INPUT").unwrap();
+    println!("Using input file: {}", input);
+
+
+    if let Some(mut f) = File::open(input).ok(){
+        let mut s = String::new();
+        match f.read_to_string(&mut s){
+            Err(_) => exit(-2),
+            Ok(_) => (),
+        }
+        let ret = match parse::parser::file(&s) {
+            IResult::Done(_,_) => 0,
+            IResult::Incomplete(_) => {println!("INC");1},
+            IResult::Error(e) => {println!("{:?}", e);1},
+        };
+        println!("{:?}", ret);
+        exit(ret);
+        }
+    else{
+        exit(-1);
     }
 }

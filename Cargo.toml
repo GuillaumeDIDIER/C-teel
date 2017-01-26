@@ -5,7 +5,8 @@ authors = ["Guillaume DIDIER <guillaume.didier@polytechnique.edu>"]
 
 [dependencies]
 regex = "^0.1.56"
+clap = "~2.19.0"
 
 [dependencies.nom]
 version = "^2.0"
-features = ["regexp"]
+features = ["regexp", "verbose-errors"]

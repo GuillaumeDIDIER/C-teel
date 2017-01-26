@@ -1,15 +1,20 @@
 use parse::ast;
-//use std::vec;
+use std::char;
 //use std::string;
 use nom::multispace;
 
-named!(comment<&str, &str>,
+named!(comment<&str, &str>,alt!(
     do_parse!(
-            tag_s!("/*")                  >>
+        tag_s!("/*")                  >>
         comment_txt: take_until_s!("*/")          >>
-            tag_s!("*/")                 >>
+        tag_s!("*/")                 >>
         (comment_txt)
     )
+    | do_parse!(tag_s!("//") >>
+        comment_txt: take_until_s!("\n")          >>
+        tag_s!("\n")                 >>
+        (comment_txt)
+))
 );
 
 named!(space<&str, Vec<&str> >,
@@ -34,6 +39,31 @@ named!(hex<&str, Vec<&str> >, re_capture!(r"^0x([0-9A-Fa-f]*)") );
 
 named!(oct<&str, &str>, re_find!(r"^0[0-7]*") );
 
+// xkcd://1638
+named!(pub character<&str, Vec<&str> >, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
+
+pub fn convert_char(ch: &str)->Option<i64>{
+    if ch.len() == 1{
+        if let Some(c) = ch.chars().next() {
+
+                return Some(c as i64);
+
+        }
+        return None
+    } else if ch.len() == 2 {
+        return match ch {
+            "\\\\" => Some(92),
+            "\\\'" => Some(39),
+            "\\\"" => Some(34),
+            _ => None
+        };
+    } else if ch.len() == 4 {
+        return i64::from_str_radix(&ch[2..], 16).ok();
+    }
+
+    return None
+}
+
 named!(pub integer<&str, ast::Expression >, alt!(
         sp!(do_parse!(
         decimal: dec >>
@@ -50,9 +80,9 @@ named!(pub integer<&str, ast::Expression >, alt!(
         value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
         (ast::Expression::Int(value))
         ))
-    |   sp!(do_parse!(tag!("0") >> (ast::Expression::Int(0)))
-    // Fixme add '' caracters.
-    )
+    |   sp!(do_parse!(tag!("0") >> (ast::Expression::Int(0))))
+    |   sp!(do_parse!(ch: character >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res)))) // It seems tha \x7f confuses the regexp.
+
 ));
 
 named!(pub unary_op<&str, ast::UnaryOp>, alt!(
@@ -62,7 +92,7 @@ named!(pub unary_op<&str, ast::UnaryOp>, alt!(
 
 named!(pub binary_op_mul<&str, ast::BinaryOp>, alt!(
     sp!(do_parse!(tag_s!("*")   >> (ast::BinaryOp::Mult)))
-    | sp!(do_parse!(tag_s!("/") >> (ast::BinaryOp::Div)))
+    | sp!(do_parse!(sp!(tag_s!("/")) >> (ast::BinaryOp::Div)))
 ));
 
 named!(pub binary_op_arith<&str, ast::BinaryOp>, alt!(
