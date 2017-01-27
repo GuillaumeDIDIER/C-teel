@@ -5,103 +5,125 @@ use parse::ast;
 
 use parse::lexer::*;
 
+pub struct Parser {
+    pub line: i64,
+    pub column: i64,
+}
+impl Parser {
 
-named!(pub file<&str, Vec<ast::Declaration> >,
+    pub fn new() -> Parser {
+
+        Parser{line: 0, column:0 }
+      }
+
+    method!(pub file<Parser, &str,  Vec<ast::Declaration> >, mut self,
     sp!(terminated!(
-        many0!(decl)
-        , eof!()
-)));
-
-// Declarations
-// Variable declaration
-named!(pub decl_vars<&str, ast::DeclVar>, alt_complete!(
-    sp!(do_parse!(kwd_int >> ids: sp!(separated_nonempty_list!(tag_s!(","), sp!(identifier))) >> tag_s!(";") >> (ast::DeclVar::Int(ids))))
-    | sp!(do_parse!(
-        sp!(kwd_struct) >> id: sp!(identifier) >>
-        ids: sp!(separated_nonempty_list!(sp!(tag_s!(",")), sp!(preceded!(sp!(tag_s!("*")), sp!(identifier))))) >> sp!(tag_s!(";")) >>
-        (ast::DeclVar::Struct(id, ids))))
-));
-
-// Type
-named!(pub decl_typ<&str, ast::DeclType>, sp!(do_parse!(
-    kwd_struct >> id: identifier >> tag_s!("{") >>
-    vars: many0!(decl_vars) >>
-    tag_s!("}") >> tag_s!(";") >>
-    ((id, vars))
-)));
-
-// Function
-//   Parameter (aux)
-named!(pub param<&str, ast::Param>, alt_complete!(
-    sp!(do_parse!(
-        kwd_int >> id: identifier >> (ast::Param::Int(id))
-    ))
-    |
-    sp!(do_parse!(
-        kwd_struct >> typ: identifier >> tag_s!("*") >> id: identifier >> (ast::Param::Struct(typ, id))
-    ))
-));
+            many0!( call_m!(self.decl) )
+            , eof!()
+    )));
 
 
-named!(pub decl_fct_aux<&str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, sp!(do_parse!(
-    id: identifier >>
-    tag_s!("(") >>
-    params: separated_list!(tag_s!(","), param) >>
-    tag_s!(")") >>
-    blk: bloc >>
-    ((id, params, blk)))
-));
+    // Declarations
+    // Variable declaration
+    method!(pub decl_vars<Parser, &str, ast::DeclVar>, mut self, alt_complete!(
+        sp!(do_parse!(kwd_int >> ids: sp!(separated_nonempty_list!(tag_s!(","), sp!(identifier))) >> tag_s!(";") >> (ast::DeclVar::Int(ids))))
+        | sp!(do_parse!(
+            sp!(kwd_struct) >> id: sp!(identifier) >>
+            ids: sp!(separated_nonempty_list!(sp!(tag_s!(",")), sp!(preceded!(sp!(tag_s!("*")), sp!(identifier))))) >> sp!(tag_s!(";")) >>
+            (ast::DeclVar::Struct(id, ids))))
+    ));
 
-named!(pub decl_fct<&str, ast::DeclFunc>, alt_complete!(
-    sp!(do_parse!(
-        kwd_int >> funct: decl_fct_aux >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
-    ))
-    |
-    sp!(do_parse!(
-        kwd_struct >> id: identifier >> tag_s!("*") >> funct: decl_fct_aux >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
-    ))
-));
-
-// All decl
-named!(pub decl<&str, ast::Declaration>, alt_complete!(
-    sp!(do_parse!(v: decl_vars >> (ast::Declaration::Var(v))))
-    | sp!(do_parse!(f: decl_fct >> (ast::Declaration::Func(f))))
-    | sp!(do_parse!(t: decl_typ >> (ast::Declaration::Type(t))))
-));
+    // Type
+    method!(pub decl_typ<Parser, &str, ast::DeclType>, mut self, sp!(do_parse!(
+        kwd_struct >> id: identifier >> tag_s!("{") >>
+        vars: many0!(call_m!(self.decl_vars)) >>
+        tag_s!("}") >> tag_s!(";") >>
+        ((id, vars))
+    )));
 
 
-// Bloc
-named!(pub bloc<&str, ast::Bloc>, sp!(do_parse!(
-    sp!(tag_s!("{")) >>
-    vars: sp!(many0!(decl_vars)) >>
-    stmts: sp!(many0!(statement)) >>
-    sp!(tag_s!("}")) >>
-    ((vars,stmts))
-)));
+    // Function
+    //   Parameter (aux)
+    method!(pub param<Parser, &str, ast::Param>, mut self, alt_complete!(
+        sp!(do_parse!(
+            kwd_int >> id: identifier >> (ast::Param::Int(id))
+        ))
+        |
+        sp!(do_parse!(
+            kwd_struct >> typ: identifier >> tag_s!("*") >> id: identifier >> (ast::Param::Struct(typ, id))
+        ))
+    ));
 
-// Statements
-named!(pub statement<&str, ast::Statement>, alt_complete!(
-    sp!(do_parse!(tag_s!(";") >> (ast::Statement::Noop)))
-    | sp!(do_parse!(e: expr >> sp!(tag_s!(";")) >> (ast::Statement::Expr(e))))
-    | sp!(do_parse!(
-        kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
-        if_s: statement >>
-        kwd_else >>
-        else_s: statement >>
-        (ast::Statement::IfElse(cond, Box::new(if_s), Box::new(else_s)))))
-    | sp!(do_parse!(
-        kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
-        if_s: statement >>
-        (ast::Statement::If(cond, Box::new(if_s)))))
-    | sp!(do_parse!(
-        kwd_while >> tag_s!("(") >> cond: expr>> tag_s!(")") >>
-        while_s: statement >>
-        (ast::Statement::While(cond, Box::new(while_s)))))
-    | sp!(do_parse!(
-        kwd_return >> val: expr >> tag_s!(";") >>
-        (ast::Statement::Return(val))))
-    | sp!(do_parse!(blk: bloc >> (ast::Statement::Bloc(blk))))
-));
+
+    method!(pub decl_fct_aux<Parser, &str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, mut self, sp!(do_parse!(
+        id: identifier >>
+        tag_s!("(") >>
+        params: separated_list!(tag_s!(","), call_m!(self.param)) >>
+        tag_s!(")") >>
+        blk: call_m!(self.bloc) >>
+        ((id, params, blk)))
+    ));
+
+    method!(pub decl_fct<Parser, &str, ast::DeclFunc>, mut self, alt_complete!(
+        sp!(do_parse!(
+            kwd_int >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
+        ))
+        |
+        sp!(do_parse!(
+            kwd_struct >> id: identifier >> tag_s!("*") >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
+        ))
+    ));
+
+
+    method!(pub decl<Parser, &str, ast::Declaration>, mut self, alt_complete!(
+        sp!(do_parse!(v: call_m!(self.decl_vars) >> (ast::Declaration::Var(v))))
+        | sp!(do_parse!(f: call_m!(self.decl_fct) >> (ast::Declaration::Func(f))))
+        | sp!(do_parse!(t: call_m!(self.decl_typ) >> (ast::Declaration::Type(t))))
+    ));
+
+    // Bloc
+    method!(pub bloc<Parser, &str, ast::Bloc>, mut self, sp!(do_parse!(
+        sp!(tag_s!("{")) >>
+        vars: sp!(many0!(call_m!(self.decl_vars))) >>
+        stmts: sp!(many0!(call_m!(self.statement))) >>
+        sp!(tag_s!("}")) >>
+        ((vars,stmts))
+    )));
+
+    // Statements
+    method!(pub statement<Parser, &str, ast::Statement>, mut self, alt_complete!(
+        sp!(do_parse!(tag_s!(";") >> (ast::Statement::Noop)))
+        | sp!(do_parse!(e: expr >> sp!(tag_s!(";")) >> (ast::Statement::Expr(e))))
+        | sp!(do_parse!(
+            kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
+            if_s: call_m!(self.statement) >>
+            kwd_else >>
+            else_s: call_m!(self.statement) >>
+            (ast::Statement::IfElse(cond, Box::new(if_s), Box::new(else_s)))))
+        | sp!(do_parse!(
+            kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
+            if_s: call_m!(self.statement) >>
+            (ast::Statement::If(cond, Box::new(if_s)))))
+        | sp!(do_parse!(
+            kwd_while >> tag_s!("(") >> cond: expr>> tag_s!(")") >>
+            while_s: call_m!(self.statement) >>
+            (ast::Statement::While(cond, Box::new(while_s)))))
+        | sp!(do_parse!(
+            kwd_return >> val: expr >> tag_s!(";") >>
+            (ast::Statement::Return(val))))
+        | sp!(do_parse!(blk: call_m!(self.bloc) >> (ast::Statement::Bloc(blk))))
+    ));
+
+}
+
+
+
+
+
+
+
+
+
 
 // Expressions
 
