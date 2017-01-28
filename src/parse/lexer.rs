@@ -40,22 +40,22 @@ macro_rules! sp (
 
 impl Parser {
 
-    method!(comment<Parser, &str, &str>, self, alt!(
+    method!(comment<Parser, &str, String>, self, alt!(
         do_parse!(
             tag_s!("/*")                  >>
             comment_txt: take_until_s!("*/")          >>
             tag_s!("*/")                 >>
-            (comment_txt)
+            (String::new() + "/*" + comment_txt + "*/")
         )
-        | do_parse!(tag_s!("//") >>
+        | do_parse!(beg: tag_s!("//") >>
             comment_txt: take_until_s!("\n")          >>
-            tag_s!("\n")                 >>
-            (comment_txt)
+            end: tag_s!("\n")                 >>
+            (String::new() + beg + comment_txt + end)
     ))
     );
 
     method!(pub space<Parser, &str, String >, mut self,
-        do_parse!(vect: many0!( alt!(call_m!(self.comment) | multispace)) >> ({
+        do_parse!(vect: many0!( alt!(call_m!(self.comment) | map!(multispace, |s: &str|{String::new() + s}))) >> ({
             let res = vect.concat();
             let mut v = Vec::new(); v.extend(res.split("\n"));
             self.location.line += (v.len()) - 1;
