@@ -5,6 +5,12 @@
 pub type Ident =  String;
 
 #[derive(Clone)]
+pub struct Location {
+    pub line: usize,
+    pub column: usize
+}
+
+#[derive(Clone)]
 pub enum UnaryOp{
     Not,
     Minus,

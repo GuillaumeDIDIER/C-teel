@@ -58,11 +58,11 @@ impl Parser {
         do_parse!(vect: many0!( alt!(call_m!(self.comment) | multispace)) >> ({
             let res = vect.concat();
             let mut v = Vec::new(); v.extend(res.split("\n"));
-            self.line += (v.len()) - 1;
+            self.location.line += (v.len()) - 1;
             if v.len() == 1 {
-                self.column += v[0].len();
+                self.location.column += v[0].len();
             } else {
-                self.column = v[v.len() -1].len();
+                self.location.column = v[v.len() -1].len();
             }
             v.concat()
         }))

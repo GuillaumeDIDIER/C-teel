@@ -6,14 +6,13 @@ use parse::ast;
 //use parse::lexer;
 
 pub struct Parser {
-    pub line: usize,
-    pub column: usize,
+    pub location: ast::Location,
 }
 impl Parser {
 
     pub fn new() -> Parser {
 
-        Parser{line: 0, column:0 }
+        Parser{location: ast::Location{line: 0, column:0} }
       }
 
     method!(pub file<Parser, &str,  Vec<ast::Declaration> >, mut self,
