@@ -3,7 +3,7 @@ use parse::ast;
 //use std::vec;
 
 
-use parse::lexer::*;
+//use parse::lexer;
 
 pub struct Parser {
     pub line: i64,
@@ -18,8 +18,9 @@ impl Parser {
 
     method!(pub file<Parser, &str,  Vec<ast::Declaration> >, mut self,
     do_parse!(
-            decls: many0!( call_m!(self.decl) ) >>
             call_m!(self.space_opt) >>
+            decls: many0!( call_m!(self.decl) ) >>
+//            call_m!(self.space_opt) >>
             eof!() >>
             (decls)
     ));
@@ -28,18 +29,18 @@ impl Parser {
     // Declarations
     // Variable declaration
     method!(pub decl_vars<Parser, &str, ast::DeclVar>, mut self, alt_complete!(
-        do_parse!(call_m!(self.kwd_int) >> ids: separated_nonempty_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.identifier)) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::DeclVar::Int(ids)))
+        do_parse!(call_m!(self.kwd_int) >> ids: separated_nonempty_list!(call_m!(self.comma), call_m!(self.identifier)) >> call_m!(self.semicolon) >> (ast::DeclVar::Int(ids)))
         | do_parse!(
             call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >>
-            ids: separated_nonempty_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), preceded!(preceded!(call_m!(self.space_opt), tag_s!("*")), call_m!(self.identifier))) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
+            ids: separated_nonempty_list!(call_m!(self.comma), preceded!(call_m!(self.op_star), call_m!(self.identifier))) >> call_m!(self.semicolon) >>
             (ast::DeclVar::Struct(id, ids)))
     ));
 
     // Type
     method!(pub decl_typ<Parser, &str, ast::DeclType>, mut self, do_parse!(
-        call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("{")) >>
+        call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> call_m!(self.brace_open) >>
         vars: many0!(call_m!(self.decl_vars)) >>
-        preceded!(call_m!(self.space_opt), tag_s!("}")) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
+        call_m!(self.brace_close) >> call_m!(self.semicolon) >>
         ((id, vars))
     ));
 
@@ -52,16 +53,16 @@ impl Parser {
         )
         |
         do_parse!(
-            call_m!(self.kwd_struct) >> typ: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("*")) >> id: call_m!(self.identifier) >> (ast::Param::Struct(typ, id))
+            call_m!(self.kwd_struct) >> typ: call_m!(self.identifier) >> call_m!(self.op_star) >> id: call_m!(self.identifier) >> (ast::Param::Struct(typ, id))
         )
     ));
 
 
     method!(pub decl_fct_aux<Parser, &str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, mut self, do_parse!(
         id: call_m!(self.identifier) >>
-        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
-        params: separated_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.param)) >>
-        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        call_m!(self.parens_open) >>
+        params: separated_list!(call_m!(self.comma), call_m!(self.param)) >>
+        call_m!(self.parens_close) >>
         blk: call_m!(self.bloc) >>
         ((id, params, blk)))
     );
@@ -72,7 +73,7 @@ impl Parser {
         )
         |
         do_parse!(
-            call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("*")) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
+            call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> call_m!(self.op_star) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
         )
     ));
 
@@ -85,33 +86,33 @@ impl Parser {
 
     // Bloc
     method!(pub bloc<Parser, &str, ast::Bloc>, mut self, do_parse!(
-        preceded!(call_m!(self.space_opt), tag_s!("{")) >>
+        call_m!(self.brace_open) >>
         vars: many0!(call_m!(self.decl_vars)) >>
         stmts: many0!(call_m!(self.statement)) >>
-        preceded!(call_m!(self.space_opt), tag_s!("}")) >>
+        call_m!(self.brace_close) >>
         ((vars,stmts))
     ));
 
     // Statements
     method!(pub statement<Parser, &str, ast::Statement>, mut self, alt_complete!(
-        do_parse!(preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::Statement::Noop))
-        | do_parse!(e: call_m!(self.expr) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::Statement::Expr(e)))
+        do_parse!(call_m!(self.semicolon) >> (ast::Statement::Noop))
+        | do_parse!(e: call_m!(self.expr) >> call_m!(self.semicolon) >> (ast::Statement::Expr(e)))
         | do_parse!(
-            call_m!(self.kwd_if) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+            call_m!(self.kwd_if) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             if_s: call_m!(self.statement) >>
             call_m!(self.kwd_else) >>
             else_s: call_m!(self.statement) >>
             (ast::Statement::IfElse(cond, Box::new(if_s), Box::new(else_s))))
         | do_parse!(
-            call_m!(self.kwd_if) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+            call_m!(self.kwd_if) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             if_s: call_m!(self.statement) >>
             (ast::Statement::If(cond, Box::new(if_s))))
         | do_parse!(
-            call_m!(self.kwd_while) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+            call_m!(self.kwd_while) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             while_s: call_m!(self.statement) >>
             (ast::Statement::While(cond, Box::new(while_s))))
         | do_parse!(
-            call_m!(self.kwd_return) >> val: call_m!(self.expr) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
+            call_m!(self.kwd_return) >> val: call_m!(self.expr) >> call_m!(self.semicolon) >>
             (ast::Statement::Return(val)))
         | do_parse!(blk: call_m!(self.bloc) >> (ast::Statement::Bloc(blk)))
     ));
@@ -124,7 +125,7 @@ impl Parser {
     method!(pub expr<Parser, &str, ast::Expression>, mut self, alt_complete!(
         do_parse!(
             lhs: call_m!(self.or_expr) >>
-            rhs: preceded!(preceded!(call_m!(self.space_opt), tag_s!("=")), call_m!(self.expr))  >>
+            rhs: preceded!(call_m!(self.op_simple_eq), call_m!(self.expr))  >>
             (ast::Expression::Binary(Box::new(lhs), ast::BinaryOp::Affect, Box::new(rhs)))
         )
         | call_m!(self.or_expr)
@@ -134,7 +135,7 @@ impl Parser {
         first: call_m!(self.and_expr) >>
         v: many0!(
             do_parse!(
-                preceded!(call_m!(self.space_opt), tag_s!("||")) >>
+                call_m!(self.op_or) >>
                 f: call_m!(self.and_expr)  >>
                 ((ast::BinaryOp::Or,f)))
             ) >>
@@ -145,7 +146,7 @@ impl Parser {
         first: call_m!(self.eq) >>
         v: many0!(
             do_parse!(
-                preceded!(call_m!(self.space_opt), tag_s!("&&")) >>
+                call_m!(self.op_and) >>
                 f: call_m!(self.eq) >>
                 ((ast::BinaryOp::And,f)))
             ) >>
@@ -208,7 +209,7 @@ impl Parser {
         first: call_m!(self.atom) >>
         v: many0!(
             do_parse!(
-                preceded!(call_m!(self.space_opt), tag_s!("->")) >>
+                call_m!(self.op_deref) >>
                 i: call_m!(self.identifier) >>
                 (i))
             ) >>
@@ -225,25 +226,25 @@ impl Parser {
 
     method!(call<Parser, &str, ast::Expression>, mut self, do_parse!(
         id: call_m!(self.identifier) >>
-        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
-        params: separated_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.expr)) >>
-        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        call_m!(self.parens_open) >>
+        params: separated_list!(call_m!(self.comma), call_m!(self.expr)) >>
+        call_m!(self.parens_close) >>
         (ast::Expression::Call(id, params))
     ));
 
     method!(parens<Parser, &str, ast::Expression>, mut self, do_parse!(
-        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        call_m!(self.parens_open) >>
         sub_expr: call_m!(self.expr) >>
-        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        call_m!(self.parens_close) >>
         (ast::Expression::Parens(Box::new(sub_expr)))
     ));
 
     method!(sizeof_struct<Parser, &str, ast::Expression>, mut self, do_parse!(
         call_m!(self.kwd_sizeof) >>
-        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        call_m!(self.parens_open) >>
         call_m!(self.kwd_struct) >>
         id: call_m!(self.identifier) >>
-        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        call_m!(self.parens_close) >>
         (ast::Expression::Sizeof(id))
     ));
 

@@ -71,71 +71,101 @@ impl Parser {
     method!(oct<Parser, &str, &str>, mut self, re_find!(r"^0[0-7]*") );
 
     method!(pub integer<Parser, &str, ast::Expression >, mut self, alt!(
-            preceded!(call_m!(self.space_opt), do_parse!(
+            terminated!(do_parse!(
             decimal: call_m!(self.dec) >>
             value: expr_opt!( decimal.parse::<i64>().ok()) >>
             (ast::Expression::Int(value))
-            ))
-        |   preceded!(call_m!(self.space_opt), do_parse!(
+            ), call_m!(self.space_opt))
+        |   terminated!(do_parse!(
             hexa: call_m!(self.hex) >>
             value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
             (ast::Expression::Int(value))
-            ))
-        |   preceded!(call_m!(self.space_opt), do_parse!(
+            ), call_m!(self.space_opt))
+        |   terminated!(do_parse!(
             oct: call_m!(self.oct) >>
             value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
             (ast::Expression::Int(value))
-            ))
-        |   preceded!(call_m!(self.space_opt), do_parse!(tag!("0") >> (ast::Expression::Int(0))))
-        |   preceded!(call_m!(self.space_opt), do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res)))) // It seems tha \x7f confuses the regexp.
+            ), call_m!(self.space_opt))
+        |   terminated!(do_parse!(tag!("0") >> (ast::Expression::Int(0))), call_m!(self.space_opt))
+        |   terminated!(do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res))), call_m!(self.space_opt)) // It seems tha \x7f confuses the regexp.
 
     ));
 
 
+
+    // Miscellaneous tokens : Comma, parenthesis, braces, ...
+    method!(pub comma       <Parser, &str, &str>, mut self, terminated!(tag_s!(","), call_m!(self.space_opt)));
+    method!(pub semicolon   <Parser, &str, &str>, mut self, terminated!(tag_s!(";"), call_m!(self.space_opt)));
+    method!(pub brace_open  <Parser, &str, &str>, mut self, terminated!(tag_s!("{"), call_m!(self.space_opt)));
+    method!(pub brace_close <Parser, &str, &str>, mut self, terminated!(tag_s!("}"), call_m!(self.space_opt)));
+    method!(pub parens_open <Parser, &str, &str>, mut self, terminated!(tag_s!("("), call_m!(self.space_opt)));
+    method!(pub parens_close<Parser, &str, &str>, mut self, terminated!(tag_s!(")"), call_m!(self.space_opt)));
+
+    // Operators
+    method!(pub op_plus     <Parser, &str, &str>, mut self, terminated!(tag_s!("+"), call_m!(self.space_opt)));
+    method!(pub op_minus    <Parser, &str, &str>, mut self, terminated!(tag_s!("-"), call_m!(self.space_opt)));
+    method!(pub op_star     <Parser, &str, &str>, mut self, terminated!(tag_s!("*"), call_m!(self.space_opt)));
+    method!(pub op_div      <Parser, &str, &str>, mut self, terminated!(tag_s!("/"), call_m!(self.space_opt)));
+    method!(pub op_not      <Parser, &str, &str>, mut self, terminated!(tag_s!("!"), call_m!(self.space_opt)));
+
+    method!(pub op_deref    <Parser, &str, &str>, mut self, terminated!(tag_s!("->"), call_m!(self.space_opt)));
+    method!(pub op_and      <Parser, &str, &str>, mut self, terminated!(tag_s!("&&"), call_m!(self.space_opt)));
+    method!(pub op_or       <Parser, &str, &str>, mut self, terminated!(tag_s!("||"), call_m!(self.space_opt)));
+
+    method!(pub op_simple_eq    <Parser, &str, &str>, mut self, terminated!(tag_s!("=" ), call_m!(self.space_opt)));
+    method!(pub op_double_eq    <Parser, &str, &str>, mut self, terminated!(tag_s!("=="), call_m!(self.space_opt)));
+    method!(pub op_not_eq       <Parser, &str, &str>, mut self, terminated!(tag_s!("!="), call_m!(self.space_opt)));
+
+    method!(pub op_gt   <Parser, &str, &str>, mut self, terminated!(tag_s!(">" ), call_m!(self.space_opt)));
+    method!(pub op_lt   <Parser, &str, &str>, mut self, terminated!(tag_s!("<" ), call_m!(self.space_opt)));
+    method!(pub op_ge   <Parser, &str, &str>, mut self, terminated!(tag_s!(">="), call_m!(self.space_opt)));
+    method!(pub op_le   <Parser, &str, &str>, mut self, terminated!(tag_s!("<="), call_m!(self.space_opt)));
+
+
+    // Operator groups.
     method!(pub unary_op<Parser, &str, ast::UnaryOp>, mut self, alt!(
-        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("!")   >> (ast::UnaryOp::Not)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("-") >> (ast::UnaryOp::Minus)))
+        do_parse!(call_m!(self.op_not)   >> (ast::UnaryOp::Not))
+        | do_parse!(call_m!(self.op_minus) >> (ast::UnaryOp::Minus))
     ));
 
     method!(pub binary_op_mul<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("*")   >> (ast::BinaryOp::Mult)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("/") >> (ast::BinaryOp::Div)))
+        do_parse!(call_m!(self.op_star)   >> (ast::BinaryOp::Mult))
+        | do_parse!(call_m!(self.op_div) >> (ast::BinaryOp::Div))
     ));
 
     method!(pub binary_op_arith<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("+")   >> (ast::BinaryOp::Plus)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("-") >> (ast::BinaryOp::Minus)))
+        do_parse!(call_m!(self.op_plus)   >> (ast::BinaryOp::Plus))
+        | do_parse!(call_m!(self.op_minus) >> (ast::BinaryOp::Minus))
     ));
 
     method!(pub binary_op_compare<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("<=")   >> (ast::BinaryOp::LowerEq)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!(">=") >> (ast::BinaryOp::GreaterEq)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("<") >> (ast::BinaryOp::Lower)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!(">") >> (ast::BinaryOp::Greater)))
+          do_parse!(call_m!(self.op_le)   >> (ast::BinaryOp::LowerEq))
+        | do_parse!(call_m!(self.op_ge) >> (ast::BinaryOp::GreaterEq))
+        | do_parse!(call_m!(self.op_lt) >> (ast::BinaryOp::Lower))
+        | do_parse!(call_m!(self.op_gt) >> (ast::BinaryOp::Greater))
     ));
 
     method!(pub binary_op_eq<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("==")   >> (ast::BinaryOp::Equal)))
-        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("!=") >> (ast::BinaryOp::NotEqual)))
+          do_parse!(call_m!(self.op_double_eq)  >> (ast::BinaryOp::Equal))
+        | do_parse!(call_m!(self.op_not_eq)     >> (ast::BinaryOp::NotEqual))
     ));
 
-
     // Keywords : Do not forget to update check_keyword below.
-    method!(pub kwd_int     <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("int")) );
-    method!(pub kwd_struct  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("struct")) );
-    method!(pub kwd_sizeof  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("sizeof")) );
-    method!(pub kwd_if      <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("if")) );
-    method!(pub kwd_else    <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("else")) );
-    method!(pub kwd_while   <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("while")) );
-    method!(pub kwd_return  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("return")) );
+    method!(pub kwd_int     <Parser, &str, &str>, mut self, terminated!(tag_s!("int"    ), call_m!(self.space_opt)) );
+    method!(pub kwd_struct  <Parser, &str, &str>, mut self, terminated!(tag_s!("struct" ), call_m!(self.space_opt)) );
+    method!(pub kwd_sizeof  <Parser, &str, &str>, mut self, terminated!(tag_s!("sizeof" ), call_m!(self.space_opt)) );
+    method!(pub kwd_if      <Parser, &str, &str>, mut self, terminated!(tag_s!("if"     ), call_m!(self.space_opt)) );
+    method!(pub kwd_else    <Parser, &str, &str>, mut self, terminated!(tag_s!("else"   ), call_m!(self.space_opt)) );
+    method!(pub kwd_while   <Parser, &str, &str>, mut self, terminated!(tag_s!("while"  ), call_m!(self.space_opt)) );
+    method!(pub kwd_return  <Parser, &str, &str>, mut self, terminated!(tag_s!("return" ), call_m!(self.space_opt)) );
 
     method!(pub identifier <Parser, &str, ast::Ident >, mut self,
-        preceded!(call_m!(self.space_opt),
+        terminated!(
         do_parse!(
             as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
             res: expr_opt!(check_keyword(as_str)) >>
             (res)
-        ))
+        ), call_m!(self.space_opt))
     );
 
 }
