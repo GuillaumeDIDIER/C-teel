@@ -34,12 +34,12 @@ fn main(){
             Err(_) => exit(-2),
             Ok(_) => (),
         }
-        let mut p = parse::parser::Parser::new();
+        let p = parse::parser::Parser::new();
 
         let ret = match p.file(&s) {
-            (mut p, IResult::Done(rem, vd)) => {println!("{:?}, {:?}", p.location.line, rem);0},
-            (mut p, IResult::Incomplete(_)) => {println!("INC {:?}", p.location.line);1},
-            (mut p, IResult::Error(e)) => {println!("{:?} {:?}", p.location.line, e);1},
+            (p, IResult::Done(rem, _)) => {println!("{:?}, {:?}", p.location.line, rem);0},
+            (p, IResult::Incomplete(_)) => {println!("INC {:?}", p.location.line);1},
+            (p, IResult::Error(e)) => {println!("{:?} {:?}", p.location.line, e);1},
         };
         println!("{:?}", ret);
         exit(ret);

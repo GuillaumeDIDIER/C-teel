@@ -71,14 +71,14 @@ impl Parser {
     method!(pub space_opt<Parser, &str, Option<String> >, mut self, opt!(call_m!(self.space)) );
 
     // xkcd://1638
-    method!(pub character<Parser, &str, Vec<&str> >, mut self, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
+    method!(pub character<Parser, &str, Vec<&str> >, self, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
 
 
-    method!(dec<Parser, &str, &str>, mut self, re_find!(r"^[1-9][0-9]*") );
+    method!(dec<Parser, &str, &str>, self, re_find!(r"^[1-9][0-9]*") );
 
-    method!(hex<Parser, &str, Vec<&str> >, mut self, re_capture!(r"^0x([0-9A-Fa-f]*)") );
+    method!(hex<Parser, &str, Vec<&str> >, self, re_capture!(r"^0x([0-9A-Fa-f]*)") );
 
-    method!(oct<Parser, &str, &str>, mut self, re_find!(r"^0[0-7]*") );
+    method!(oct<Parser, &str, &str>, self, re_find!(r"^0[0-7]*") );
 
     method!(pub integer<Parser, &str, ast::Expression >, mut self, alt!(
             terminated!(do_parse!(
