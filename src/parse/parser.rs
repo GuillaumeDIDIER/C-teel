@@ -6,8 +6,8 @@ use parse::ast;
 //use parse::lexer;
 
 pub struct Parser {
-    pub line: i64,
-    pub column: i64,
+    pub line: usize,
+    pub column: usize,
 }
 impl Parser {
 

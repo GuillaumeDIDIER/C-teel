@@ -1,5 +1,5 @@
 use parse::ast;
-use std::char;
+//use std::char;
 //use std::string;
 use nom::multispace;
 use parse::parser::Parser;
@@ -40,7 +40,7 @@ macro_rules! sp (
 
 impl Parser {
 
-    method!(comment<Parser, &str, &str>, mut self, alt!(
+    method!(comment<Parser, &str, &str>, self, alt!(
         do_parse!(
             tag_s!("/*")                  >>
             comment_txt: take_until_s!("*/")          >>
@@ -54,11 +54,21 @@ impl Parser {
     ))
     );
 
-    method!(pub space<Parser, &str, Vec<&str> >, mut self,
-        many0!( alt!(call_m!(self.comment) | multispace))
+    method!(pub space<Parser, &str, String >, mut self,
+        do_parse!(vect: many0!( alt!(call_m!(self.comment) | multispace)) >> ({
+            let res = vect.concat();
+            let mut v = Vec::new(); v.extend(res.split("\n"));
+            self.line += (v.len()) - 1;
+            if v.len() == 1 {
+                self.column += v[0].len();
+            } else {
+                self.column = v[v.len() -1].len();
+            }
+            v.concat()
+        }))
     );
 
-    method!(pub space_opt<Parser, &str, Option<Vec<&str>> >, mut self, opt!(call_m!(self.space)) );
+    method!(pub space_opt<Parser, &str, Option<String> >, mut self, opt!(call_m!(self.space)) );
 
     // xkcd://1638
     method!(pub character<Parser, &str, Vec<&str> >, mut self, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
