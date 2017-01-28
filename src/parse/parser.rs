@@ -1,9 +1,15 @@
 
 use parse::ast;
+use nom;
 //use std::vec;
 
 
 //use parse::lexer;
+
+
+fn get_null_location<'a>(input: &'a str) -> nom::IResult<&'a str, ast::Location>{
+    nom::IResult::Done(input, ast::Location{line:0, column:0})
+}
 
 pub struct Parser {
     pub location: ast::Location,
@@ -13,7 +19,12 @@ impl Parser {
     pub fn new() -> Parser {
 
         Parser{location: ast::Location{line: 0, column:0} }
-      }
+    }
+
+    pub fn getLocation<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, ast::Location>){
+        let l =ast::Location::clone(&self.location);
+        (self,nom::IResult::Done(input, l))
+    }
 
     method!(pub file<Parser, &str,  Vec<ast::Declaration> >, mut self,
     do_parse!(
@@ -66,21 +77,33 @@ impl Parser {
         ((id, params, blk)))
     );
 
-    method!(pub decl_fct<Parser, &str, ast::DeclFunc>, mut self, alt_complete!(
-        do_parse!(
-            call_m!(self.kwd_int) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
-        )
-        |
-        do_parse!(
-            call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> call_m!(self.op_star) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
-        )
+    method!(pub decl_fct<Parser, &str, ast::DeclFunc>, mut self, do_parse!(
+        start: call_m!(self.getLocation) >>
+        t: alt_complete!(
+            do_parse!(
+                call_m!(self.kwd_int) >> funct: call_m!(self.decl_fct_aux) >>
+                (ast::DeclFuncType::Int(funct.0, funct.1, funct.2))
+            )
+            |
+            do_parse!(
+                call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> call_m!(self.op_star) >> funct: call_m!(self.decl_fct_aux) >>
+                (ast::DeclFuncType::Struct(id, funct.0, funct.1, funct.2))
+            )
+        ) >>
+        stop: call_m!(self.getLocation) >>
+        (ast::DeclFunc{start: start, stop: stop, t: t})
     ));
 
 
-    method!(pub decl<Parser, &str, ast::Declaration>, mut self, alt_complete!(
-        do_parse!(v: call_m!(self.decl_vars) >> (ast::Declaration::Var(v)))
-        | do_parse!(f: call_m!(self.decl_fct) >> (ast::Declaration::Func(f)))
-        | do_parse!(t: call_m!(self.decl_typ) >> (ast::Declaration::Type(t)))
+    method!(pub decl<Parser, &str, ast::Declaration>, mut self, do_parse!(
+        start: call_m!(self.getLocation) >>
+        t: alt_complete!(
+              do_parse!(v: call_m!(self.decl_vars) >> (ast::DeclarationType::Var(v)))
+            | do_parse!(f: call_m!(self.decl_fct) >> (ast::DeclarationType::Func(f)))
+            | do_parse!(t: call_m!(self.decl_typ) >> (ast::DeclarationType::Type(t)))
+        ) >>
+        stop: call_m!(self.getLocation) >>
+        (ast::Declaration{start: start, stop: stop, t: t})
     ));
 
     // Bloc

@@ -60,16 +60,30 @@ pub enum DeclVar {
 }
 
 #[derive(Clone)]
-pub enum DeclFunc {
+pub enum DeclFuncType {
     Int(Ident, Vec<Param>, Bloc),
     Struct(Ident, Ident, Vec<Param>, Bloc),
 }
 
 #[derive(Clone)]
-pub enum Declaration {
+pub struct DeclFunc {
+    pub start: Location,
+    pub stop: Location,
+    pub t: DeclFuncType,
+}
+
+#[derive(Clone)]
+pub enum DeclarationType {
     Var(DeclVar),
     Type(DeclType),
     Func(DeclFunc),
+}
+
+#[derive(Clone)]
+pub struct Declaration {
+    pub start: Location,
+    pub stop:  Location,
+    pub t: DeclarationType,
 }
 
 pub type Bloc = (Vec<DeclVar>,Vec<Statement>);
