@@ -38,8 +38,8 @@ fn main(){
 
         let ret = match p.file(&s) {
             (mut p, IResult::Done(rem, vd)) => {println!("{:?}, {:?}", p.location.line, rem);0},
-            (mut p, IResult::Incomplete(_)) => {println!("INC");1},
-            (mut p, IResult::Error(e)) => {println!("{:?}", e);1},
+            (mut p, IResult::Incomplete(_)) => {println!("INC {:?}", p.location.line);1},
+            (mut p, IResult::Error(e)) => {println!("{:?} {:?}", p.location.line, e);1},
         };
         println!("{:?}", ret);
         exit(ret);
