@@ -84,52 +84,52 @@ impl Parser {
             terminated!(do_parse!(
             decimal: call_m!(self.dec) >>
             value: expr_opt!( decimal.parse::<i64>().ok()) >>
-            (ast::Expression::Int(value))
+            ({self.location.column += decimal.len(); ast::Expression::Int(value)})
             ), call_m!(self.space_opt))
         |   terminated!(do_parse!(
             hexa: call_m!(self.hex) >>
             value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
-            (ast::Expression::Int(value))
+            ({self.location.column += hexa[0].len(); ast::Expression::Int(value)})
             ), call_m!(self.space_opt))
         |   terminated!(do_parse!(
             oct: call_m!(self.oct) >>
             value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
-            (ast::Expression::Int(value))
+            ({self.location.column += oct.len(); ast::Expression::Int(value)})
             ), call_m!(self.space_opt))
-        |   terminated!(do_parse!(tag!("0") >> (ast::Expression::Int(0))), call_m!(self.space_opt))
-        |   terminated!(do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res))), call_m!(self.space_opt)) // It seems tha \x7f confuses the regexp.
+        |   terminated!(do_parse!(tag!("0") >> ({self.location.column += 1; ast::Expression::Int(0)})), call_m!(self.space_opt))
+        |   terminated!(do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> ({self.location.column += ch[0].len() + 1; ast::Expression::Int(res)})), call_m!(self.space_opt)) // It seems tha \x7f confuses the regexp.
 
     ));
 
 
 
     // Miscellaneous tokens : Comma, parenthesis, braces, ...
-    method!(pub comma       <Parser, &str, &str>, mut self, terminated!(tag_s!(","), call_m!(self.space_opt)));
-    method!(pub semicolon   <Parser, &str, &str>, mut self, terminated!(tag_s!(";"), call_m!(self.space_opt)));
-    method!(pub brace_open  <Parser, &str, &str>, mut self, terminated!(tag_s!("{"), call_m!(self.space_opt)));
-    method!(pub brace_close <Parser, &str, &str>, mut self, terminated!(tag_s!("}"), call_m!(self.space_opt)));
-    method!(pub parens_open <Parser, &str, &str>, mut self, terminated!(tag_s!("("), call_m!(self.space_opt)));
-    method!(pub parens_close<Parser, &str, &str>, mut self, terminated!(tag_s!(")"), call_m!(self.space_opt)));
+    method!(pub comma       <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!(",") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub semicolon   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!(";") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub brace_open  <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("{") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub brace_close <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("}") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub parens_open <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("(") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub parens_close<Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!(")") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
 
     // Operators
-    method!(pub op_plus     <Parser, &str, &str>, mut self, terminated!(tag_s!("+"), call_m!(self.space_opt)));
-    method!(pub op_minus    <Parser, &str, &str>, mut self, terminated!(tag_s!("-"), call_m!(self.space_opt)));
-    method!(pub op_star     <Parser, &str, &str>, mut self, terminated!(tag_s!("*"), call_m!(self.space_opt)));
-    method!(pub op_div      <Parser, &str, &str>, mut self, terminated!(tag_s!("/"), call_m!(self.space_opt)));
-    method!(pub op_not      <Parser, &str, &str>, mut self, terminated!(tag_s!("!"), call_m!(self.space_opt)));
+    method!(pub op_plus     <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("+") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_minus    <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("-") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_star     <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("*") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_div      <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("/") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_not      <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("!") >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
 
-    method!(pub op_deref    <Parser, &str, &str>, mut self, terminated!(tag_s!("->"), call_m!(self.space_opt)));
-    method!(pub op_and      <Parser, &str, &str>, mut self, terminated!(tag_s!("&&"), call_m!(self.space_opt)));
-    method!(pub op_or       <Parser, &str, &str>, mut self, terminated!(tag_s!("||"), call_m!(self.space_opt)));
+    method!(pub op_deref    <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("->") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
+    method!(pub op_and      <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("&&") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
+    method!(pub op_or       <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("||") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
 
-    method!(pub op_simple_eq    <Parser, &str, &str>, mut self, terminated!(tag_s!("=" ), call_m!(self.space_opt)));
-    method!(pub op_double_eq    <Parser, &str, &str>, mut self, terminated!(tag_s!("=="), call_m!(self.space_opt)));
-    method!(pub op_not_eq       <Parser, &str, &str>, mut self, terminated!(tag_s!("!="), call_m!(self.space_opt)));
+    method!(pub op_simple_eq    <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("=" ) >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
+    method!(pub op_double_eq    <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("==") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
+    method!(pub op_not_eq       <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("!=") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
 
-    method!(pub op_gt   <Parser, &str, &str>, mut self, terminated!(tag_s!(">" ), call_m!(self.space_opt)));
-    method!(pub op_lt   <Parser, &str, &str>, mut self, terminated!(tag_s!("<" ), call_m!(self.space_opt)));
-    method!(pub op_ge   <Parser, &str, &str>, mut self, terminated!(tag_s!(">="), call_m!(self.space_opt)));
-    method!(pub op_le   <Parser, &str, &str>, mut self, terminated!(tag_s!("<="), call_m!(self.space_opt)));
+    method!(pub op_gt   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!(">" ) >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_lt   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("<" ) >> ({self.location.column += 1; s})), call_m!(self.space_opt)));
+    method!(pub op_ge   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!(">=") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
+    method!(pub op_le   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("<=") >> ({self.location.column += 2; s})), call_m!(self.space_opt)));
 
 
     // Operator groups.
@@ -161,20 +161,20 @@ impl Parser {
     ));
 
     // Keywords : Do not forget to update check_keyword below.
-    method!(pub kwd_int     <Parser, &str, &str>, mut self, terminated!(tag_s!("int"    ), call_m!(self.space_opt)) );
-    method!(pub kwd_struct  <Parser, &str, &str>, mut self, terminated!(tag_s!("struct" ), call_m!(self.space_opt)) );
-    method!(pub kwd_sizeof  <Parser, &str, &str>, mut self, terminated!(tag_s!("sizeof" ), call_m!(self.space_opt)) );
-    method!(pub kwd_if      <Parser, &str, &str>, mut self, terminated!(tag_s!("if"     ), call_m!(self.space_opt)) );
-    method!(pub kwd_else    <Parser, &str, &str>, mut self, terminated!(tag_s!("else"   ), call_m!(self.space_opt)) );
-    method!(pub kwd_while   <Parser, &str, &str>, mut self, terminated!(tag_s!("while"  ), call_m!(self.space_opt)) );
-    method!(pub kwd_return  <Parser, &str, &str>, mut self, terminated!(tag_s!("return" ), call_m!(self.space_opt)) );
+    method!(pub kwd_int     <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("int"    ) >> ({self.location.column += 3; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_struct  <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("struct" ) >> ({self.location.column += 6; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_sizeof  <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("sizeof" ) >> ({self.location.column += 6; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_if      <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("if"     ) >> ({self.location.column += 2; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_else    <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("else"   ) >> ({self.location.column += 4; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_while   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("while"  ) >> ({self.location.column += 5; s})), call_m!(self.space_opt)) );
+    method!(pub kwd_return  <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("return" ) >> ({self.location.column += 6; s})), call_m!(self.space_opt)) );
 
     method!(pub identifier <Parser, &str, ast::Ident >, mut self,
         terminated!(
         do_parse!(
             as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
             res: expr_opt!(check_keyword(as_str)) >>
-            (res)
+            ({self.location.column += res.len(); res})
         ), call_m!(self.space_opt))
     );
 
