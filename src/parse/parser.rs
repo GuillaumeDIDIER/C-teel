@@ -17,150 +17,237 @@ impl Parser {
       }
 
     method!(pub file<Parser, &str,  Vec<ast::Declaration> >, mut self,
-    sp!(terminated!(
-            many0!( call_m!(self.decl) )
-            , eof!()
-    )));
+    do_parse!(
+            decls: many0!( call_m!(self.decl) ) >>
+            call_m!(self.space_opt) >>
+            eof!() >>
+            (decls)
+    ));
 
 
     // Declarations
     // Variable declaration
     method!(pub decl_vars<Parser, &str, ast::DeclVar>, mut self, alt_complete!(
-        sp!(do_parse!(kwd_int >> ids: sp!(separated_nonempty_list!(tag_s!(","), sp!(identifier))) >> tag_s!(";") >> (ast::DeclVar::Int(ids))))
-        | sp!(do_parse!(
-            sp!(kwd_struct) >> id: sp!(identifier) >>
-            ids: sp!(separated_nonempty_list!(sp!(tag_s!(",")), sp!(preceded!(sp!(tag_s!("*")), sp!(identifier))))) >> sp!(tag_s!(";")) >>
-            (ast::DeclVar::Struct(id, ids))))
+        do_parse!(call_m!(self.kwd_int) >> ids: separated_nonempty_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.identifier)) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::DeclVar::Int(ids)))
+        | do_parse!(
+            call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >>
+            ids: separated_nonempty_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), preceded!(preceded!(call_m!(self.space_opt), tag_s!("*")), call_m!(self.identifier))) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
+            (ast::DeclVar::Struct(id, ids)))
     ));
 
     // Type
-    method!(pub decl_typ<Parser, &str, ast::DeclType>, mut self, sp!(do_parse!(
-        kwd_struct >> id: identifier >> tag_s!("{") >>
+    method!(pub decl_typ<Parser, &str, ast::DeclType>, mut self, do_parse!(
+        call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("{")) >>
         vars: many0!(call_m!(self.decl_vars)) >>
-        tag_s!("}") >> tag_s!(";") >>
+        preceded!(call_m!(self.space_opt), tag_s!("}")) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
         ((id, vars))
-    )));
+    ));
 
 
     // Function
     //   Parameter (aux)
     method!(pub param<Parser, &str, ast::Param>, mut self, alt_complete!(
-        sp!(do_parse!(
-            kwd_int >> id: identifier >> (ast::Param::Int(id))
-        ))
+        do_parse!(
+            call_m!(self.kwd_int) >> id: call_m!(self.identifier) >> (ast::Param::Int(id))
+        )
         |
-        sp!(do_parse!(
-            kwd_struct >> typ: identifier >> tag_s!("*") >> id: identifier >> (ast::Param::Struct(typ, id))
-        ))
+        do_parse!(
+            call_m!(self.kwd_struct) >> typ: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("*")) >> id: call_m!(self.identifier) >> (ast::Param::Struct(typ, id))
+        )
     ));
 
 
-    method!(pub decl_fct_aux<Parser, &str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, mut self, sp!(do_parse!(
-        id: identifier >>
-        tag_s!("(") >>
-        params: separated_list!(tag_s!(","), call_m!(self.param)) >>
-        tag_s!(")") >>
+    method!(pub decl_fct_aux<Parser, &str, (ast::Ident, Vec<ast::Param>, ast::Bloc) >, mut self, do_parse!(
+        id: call_m!(self.identifier) >>
+        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        params: separated_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.param)) >>
+        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
         blk: call_m!(self.bloc) >>
         ((id, params, blk)))
-    ));
+    );
 
     method!(pub decl_fct<Parser, &str, ast::DeclFunc>, mut self, alt_complete!(
-        sp!(do_parse!(
-            kwd_int >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
-        ))
+        do_parse!(
+            call_m!(self.kwd_int) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Int(funct.0, funct.1, funct.2))
+        )
         |
-        sp!(do_parse!(
-            kwd_struct >> id: identifier >> tag_s!("*") >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
-        ))
+        do_parse!(
+            call_m!(self.kwd_struct) >> id: call_m!(self.identifier) >> preceded!(call_m!(self.space_opt), tag_s!("*")) >> funct: call_m!(self.decl_fct_aux) >> (ast::DeclFunc::Struct(id, funct.0, funct.1, funct.2))
+        )
     ));
 
 
     method!(pub decl<Parser, &str, ast::Declaration>, mut self, alt_complete!(
-        sp!(do_parse!(v: call_m!(self.decl_vars) >> (ast::Declaration::Var(v))))
-        | sp!(do_parse!(f: call_m!(self.decl_fct) >> (ast::Declaration::Func(f))))
-        | sp!(do_parse!(t: call_m!(self.decl_typ) >> (ast::Declaration::Type(t))))
+        do_parse!(v: call_m!(self.decl_vars) >> (ast::Declaration::Var(v)))
+        | do_parse!(f: call_m!(self.decl_fct) >> (ast::Declaration::Func(f)))
+        | do_parse!(t: call_m!(self.decl_typ) >> (ast::Declaration::Type(t)))
     ));
 
     // Bloc
-    method!(pub bloc<Parser, &str, ast::Bloc>, mut self, sp!(do_parse!(
-        sp!(tag_s!("{")) >>
-        vars: sp!(many0!(call_m!(self.decl_vars))) >>
-        stmts: sp!(many0!(call_m!(self.statement))) >>
-        sp!(tag_s!("}")) >>
+    method!(pub bloc<Parser, &str, ast::Bloc>, mut self, do_parse!(
+        preceded!(call_m!(self.space_opt), tag_s!("{")) >>
+        vars: many0!(call_m!(self.decl_vars)) >>
+        stmts: many0!(call_m!(self.statement)) >>
+        preceded!(call_m!(self.space_opt), tag_s!("}")) >>
         ((vars,stmts))
-    )));
+    ));
 
     // Statements
     method!(pub statement<Parser, &str, ast::Statement>, mut self, alt_complete!(
-        sp!(do_parse!(tag_s!(";") >> (ast::Statement::Noop)))
-        | sp!(do_parse!(e: expr >> sp!(tag_s!(";")) >> (ast::Statement::Expr(e))))
-        | sp!(do_parse!(
-            kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
+        do_parse!(preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::Statement::Noop))
+        | do_parse!(e: call_m!(self.expr) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >> (ast::Statement::Expr(e)))
+        | do_parse!(
+            call_m!(self.kwd_if) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
             if_s: call_m!(self.statement) >>
-            kwd_else >>
+            call_m!(self.kwd_else) >>
             else_s: call_m!(self.statement) >>
-            (ast::Statement::IfElse(cond, Box::new(if_s), Box::new(else_s)))))
-        | sp!(do_parse!(
-            kwd_if >> sp!(tag_s!("(")) >> cond: expr>> sp!(tag_s!(")")) >>
+            (ast::Statement::IfElse(cond, Box::new(if_s), Box::new(else_s))))
+        | do_parse!(
+            call_m!(self.kwd_if) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
             if_s: call_m!(self.statement) >>
-            (ast::Statement::If(cond, Box::new(if_s)))))
-        | sp!(do_parse!(
-            kwd_while >> tag_s!("(") >> cond: expr>> tag_s!(")") >>
+            (ast::Statement::If(cond, Box::new(if_s))))
+        | do_parse!(
+            call_m!(self.kwd_while) >> preceded!(call_m!(self.space_opt), tag_s!("(")) >> cond: call_m!(self.expr)>> preceded!(call_m!(self.space_opt), tag_s!(")")) >>
             while_s: call_m!(self.statement) >>
-            (ast::Statement::While(cond, Box::new(while_s)))))
-        | sp!(do_parse!(
-            kwd_return >> val: expr >> tag_s!(";") >>
-            (ast::Statement::Return(val))))
-        | sp!(do_parse!(blk: call_m!(self.bloc) >> (ast::Statement::Bloc(blk))))
+            (ast::Statement::While(cond, Box::new(while_s))))
+        | do_parse!(
+            call_m!(self.kwd_return) >> val: call_m!(self.expr) >> preceded!(call_m!(self.space_opt), tag_s!(";")) >>
+            (ast::Statement::Return(val)))
+        | do_parse!(blk: call_m!(self.bloc) >> (ast::Statement::Bloc(blk)))
+    ));
+
+    // Expressions
+
+
+
+    //method!(pub expr<Parser, &str, ast::Expression>, mut self, sp!(affect_expr));
+    method!(pub expr<Parser, &str, ast::Expression>, mut self, alt_complete!(
+        do_parse!(
+            lhs: call_m!(self.or_expr) >>
+            rhs: preceded!(preceded!(call_m!(self.space_opt), tag_s!("=")), call_m!(self.expr))  >>
+            (ast::Expression::Binary(Box::new(lhs), ast::BinaryOp::Affect, Box::new(rhs)))
+        )
+        | call_m!(self.or_expr)
+    ));
+
+    method!(pub or_expr<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.and_expr) >>
+        v: many0!(
+            do_parse!(
+                preceded!(call_m!(self.space_opt), tag_s!("||")) >>
+                f: call_m!(self.and_expr)  >>
+                ((ast::BinaryOp::Or,f)))
+            ) >>
+            (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(and_expr<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.eq) >>
+        v: many0!(
+            do_parse!(
+                preceded!(call_m!(self.space_opt), tag_s!("&&")) >>
+                f: call_m!(self.eq) >>
+                ((ast::BinaryOp::And,f)))
+            ) >>
+        (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(eq<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.compare) >>
+        v: many0!(
+            do_parse!(
+                op: call_m!(self.binary_op_eq) >>
+                f: call_m!(self.compare) >>
+                ((op,f)))
+            ) >>
+        (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(compare<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.arith) >>
+        v: many0!(
+            do_parse!(
+                op: call_m!(self.binary_op_compare) >>
+                f: call_m!(self.arith) >>
+                ((op,f)))
+            ) >>
+        (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(arith<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.term) >>
+        v: many0!(
+            do_parse!(
+                op: call_m!(self.binary_op_arith) >>
+                f: call_m!(self.term) >>
+                ((op,f)))
+            ) >>
+        (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(term<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.factor) >>
+        v: many0!(
+            do_parse!(
+                op: call_m!(self.binary_op_mul) >>
+                f: call_m!(self.factor) >>
+                ((op,f)))
+            ) >>
+        (build_binop_left_assoc_tree(first, v))
+    ));
+
+    method!(factor<Parser, &str, ast::Expression>, mut self, alt!(do_parse!(
+        op: call_m!(self.unary_op) >>
+        un: call_m!(self.factor) >>
+        (ast::Expression::Unary(op, Box::new(un)))
+    )
+    | call_m!(self.deref)
+    ));
+
+    method!(deref<Parser, &str, ast::Expression>, mut self, do_parse!(
+        first: call_m!(self.atom) >>
+        v: many0!(
+            do_parse!(
+                preceded!(call_m!(self.space_opt), tag_s!("->")) >>
+                i: call_m!(self.identifier) >>
+                (i))
+            ) >>
+        (build_deref_tree(first, v))
+    ));
+
+    method!(atom<Parser, &str, ast::Expression>, mut self, alt_complete!(
+          call_m!(self.call)
+        | call_m!(self.parens)
+        | call_m!(self.integer)
+        | call_m!(self.sizeof_struct)
+        | do_parse!(id: call_m!(self.identifier) >> (ast::Expression::Ident(id)))
+    ));
+
+    method!(call<Parser, &str, ast::Expression>, mut self, do_parse!(
+        id: call_m!(self.identifier) >>
+        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        params: separated_list!(preceded!(call_m!(self.space_opt), tag_s!(",")), call_m!(self.expr)) >>
+        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        (ast::Expression::Call(id, params))
+    ));
+
+    method!(parens<Parser, &str, ast::Expression>, mut self, do_parse!(
+        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        sub_expr: call_m!(self.expr) >>
+        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        (ast::Expression::Parens(Box::new(sub_expr)))
+    ));
+
+    method!(sizeof_struct<Parser, &str, ast::Expression>, mut self, do_parse!(
+        call_m!(self.kwd_sizeof) >>
+        preceded!(call_m!(self.space_opt), tag_s!("(")) >>
+        call_m!(self.kwd_struct) >>
+        id: call_m!(self.identifier) >>
+        preceded!(call_m!(self.space_opt), tag_s!(")")) >>
+        (ast::Expression::Sizeof(id))
     ));
 
 }
-
-
-
-
-
-
-
-
-
-
-// Expressions
-
-named!(pub parens<&str, ast::Expression>, sp!(do_parse!(
-    tag_s!("(") >>
-    sub_expr: expr >>
-    tag_s!(")") >>
-    (ast::Expression::Parens(Box::new(sub_expr)))
-)));
-
-named!(pub expr<&str, ast::Expression>, sp!(affect_expr));
-
-named!(sizeof_struct<&str, ast::Expression>, sp!(do_parse!(
-    kwd_sizeof >>
-    tag_s!("(") >>
-    kwd_struct >>
-    id: identifier >>
-    tag_s!(")") >>
-    (ast::Expression::Sizeof(id))
-)));
-
-named!(pub call<&str, ast::Expression>, sp!(do_parse!(
-    id: identifier >>
-    tag_s!("(") >>
-    params: sp!(separated_list!(sp!(tag_s!(",")), expr)) >>
-    tag_s!(")") >>
-    (ast::Expression::Call(id, params))
-)));
-
-named!(atom<&str, ast::Expression> , alt_complete!(
-
-      call
-    | parens
-    | integer
-    | sizeof_struct
-    | do_parse!(id: identifier >> (ast::Expression::Ident(id)))
-));
 
 pub fn build_deref_tree(first: ast::Expression , v: Vec<ast::Ident>) -> ast::Expression{
     let mut vm = v.clone();
@@ -174,29 +261,6 @@ pub fn build_deref_tree_aux(first: ast::Expression , v: &mut Vec<ast::Ident>) ->
         first
     }
 }
-
-named!(pub deref<&str, ast::Expression>, sp!(do_parse!(
-    first: atom >>
-    v: many0!(
-        do_parse!(
-            tag_s!("->") >>
-            i: identifier >>
-            (i))
-        ) >>
-    (build_deref_tree(first, v))
-    )
-));
-
-
-
-named!(factor<&str, ast::Expression>, alt!(sp!(do_parse!(
-    op: unary_op >>
-    un: factor >>
-    (ast::Expression::Unary(op, Box::new(un)))
-))
-| deref
-));
-
 fn build_binop_left_assoc_tree(first: ast::Expression , v: Vec<(ast::BinaryOp,ast::Expression)>) -> ast::Expression{
     let mut vm = v.clone();
     build_binop_left_assoc_tree_aux(first, &mut vm)
@@ -209,84 +273,3 @@ fn build_binop_left_assoc_tree_aux(first: ast::Expression , v: &mut Vec<(ast::Bi
         first
     }
 }
-
-named!(term<&str, ast::Expression>, sp!(do_parse!(
-    first: factor >>
-    v: many0!(
-        do_parse!(
-            op: binary_op_mul >>
-            f: factor >>
-            ((op,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    )
-));
-
-named!(arith<&str, ast::Expression>, sp!(do_parse!(
-    first: term >>
-    v: many0!(
-        do_parse!(
-            op: binary_op_arith >>
-            f: term >>
-            ((op,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    )
-));
-
-named!(compare<&str, ast::Expression>, sp!(do_parse!(
-    first: arith >>
-    v: many0!(
-        do_parse!(
-            op: binary_op_compare >>
-            f: arith >>
-            ((op,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    )
-));
-
-named!(eq<&str, ast::Expression>, sp!(do_parse!(
-    first: compare >>
-    v: many0!(
-        do_parse!(
-            op: binary_op_eq >>
-            f: compare >>
-            ((op,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    )
-));
-
-named!(and_expr<&str, ast::Expression>, sp!(do_parse!(
-    first: eq >>
-    v: many0!(
-        do_parse!(
-            tag_s!("&&") >>
-            f: eq >>
-            ((ast::BinaryOp::And,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    )
-));
-
-named!(pub or_expr<&str, ast::Expression>, sp!(do_parse!(
-    first: and_expr >>
-    v: many0!(
-        do_parse!(
-            tag_s!("||") >>
-            f: and_expr >>
-            ((ast::BinaryOp::Or,f)))
-        ) >>
-    (build_binop_left_assoc_tree(first, v))
-    ))
-);
-
-named!(pub affect_expr<&str, ast::Expression>,alt_complete!(
-    sp!(do_parse!(
-        lhs: or_expr >>
-        rhs: sp!(preceded!(sp!(tag_s!("=")), expr))  >>
-        (ast::Expression::Binary(Box::new(lhs), ast::BinaryOp::Affect, Box::new(rhs)))
-    ))
-    | or_expr
-));

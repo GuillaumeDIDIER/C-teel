@@ -2,45 +2,10 @@ use parse::ast;
 use std::char;
 //use std::string;
 use nom::multispace;
-
-named!(comment<&str, &str>,alt!(
-    do_parse!(
-        tag_s!("/*")                  >>
-        comment_txt: take_until_s!("*/")          >>
-        tag_s!("*/")                 >>
-        (comment_txt)
-    )
-    | do_parse!(tag_s!("//") >>
-        comment_txt: take_until_s!("\n")          >>
-        tag_s!("\n")                 >>
-        (comment_txt)
-))
-);
-
-named!(space<&str, Vec<&str> >,
-    many0!( alt!(comment | multispace))
-);
-
-named!(pub space_opt<&str, Option<Vec<&str>> >, opt!( space) );
-
-#[macro_export]
-macro_rules! sp (
-  ($i:expr, $($args:tt)*) => (
-    {
-      sep!($i, space_opt, $($args)*)
-    }
-  )
-);
+use parse::parser::Parser;
 
 
-named!(dec<&str, &str>, re_find!(r"^[1-9][0-9]*") );
 
-named!(hex<&str, Vec<&str> >, re_capture!(r"^0x([0-9A-Fa-f]*)") );
-
-named!(oct<&str, &str>, re_find!(r"^0[0-7]*") );
-
-// xkcd://1638
-named!(pub character<&str, Vec<&str> >, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
 
 pub fn convert_char(ch: &str)->Option<i64>{
     if ch.len() == 1{
@@ -64,64 +29,116 @@ pub fn convert_char(ch: &str)->Option<i64>{
     return None
 }
 
-named!(pub integer<&str, ast::Expression >, alt!(
-        sp!(do_parse!(
-        decimal: dec >>
-        value: expr_opt!( decimal.parse::<i64>().ok()) >>
-        (ast::Expression::Int(value))
+/*#[macro_export]
+macro_rules! sp (
+  ($i:expr, $($args:tt)*) => (
+    {
+      sep!($i, call_m!(self.space_opt), $($args)*)
+    }
+  )
+);*/
+
+impl Parser {
+
+    method!(comment<Parser, &str, &str>, mut self, alt!(
+        do_parse!(
+            tag_s!("/*")                  >>
+            comment_txt: take_until_s!("*/")          >>
+            tag_s!("*/")                 >>
+            (comment_txt)
+        )
+        | do_parse!(tag_s!("//") >>
+            comment_txt: take_until_s!("\n")          >>
+            tag_s!("\n")                 >>
+            (comment_txt)
+    ))
+    );
+
+    method!(pub space<Parser, &str, Vec<&str> >, mut self,
+        many0!( alt!(call_m!(self.comment) | multispace))
+    );
+
+    method!(pub space_opt<Parser, &str, Option<Vec<&str>> >, mut self, opt!(call_m!(self.space)) );
+
+    // xkcd://1638
+    method!(pub character<Parser, &str, Vec<&str> >, mut self, re_capture!(r#"^('(\\\\|\\"|\\'|[ -\x7F]|(\\x[0-9A-Fa-f][0-9A-Fa-f]))')"#) );
+
+
+    method!(dec<Parser, &str, &str>, mut self, re_find!(r"^[1-9][0-9]*") );
+
+    method!(hex<Parser, &str, Vec<&str> >, mut self, re_capture!(r"^0x([0-9A-Fa-f]*)") );
+
+    method!(oct<Parser, &str, &str>, mut self, re_find!(r"^0[0-7]*") );
+
+    method!(pub integer<Parser, &str, ast::Expression >, mut self, alt!(
+            preceded!(call_m!(self.space_opt), do_parse!(
+            decimal: call_m!(self.dec) >>
+            value: expr_opt!( decimal.parse::<i64>().ok()) >>
+            (ast::Expression::Int(value))
+            ))
+        |   preceded!(call_m!(self.space_opt), do_parse!(
+            hexa: call_m!(self.hex) >>
+            value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
+            (ast::Expression::Int(value))
+            ))
+        |   preceded!(call_m!(self.space_opt), do_parse!(
+            oct: call_m!(self.oct) >>
+            value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
+            (ast::Expression::Int(value))
+            ))
+        |   preceded!(call_m!(self.space_opt), do_parse!(tag!("0") >> (ast::Expression::Int(0))))
+        |   preceded!(call_m!(self.space_opt), do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res)))) // It seems tha \x7f confuses the regexp.
+
+    ));
+
+
+    method!(pub unary_op<Parser, &str, ast::UnaryOp>, mut self, alt!(
+        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("!")   >> (ast::UnaryOp::Not)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("-") >> (ast::UnaryOp::Minus)))
+    ));
+
+    method!(pub binary_op_mul<Parser, &str, ast::BinaryOp>, mut self, alt!(
+        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("*")   >> (ast::BinaryOp::Mult)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("/") >> (ast::BinaryOp::Div)))
+    ));
+
+    method!(pub binary_op_arith<Parser, &str, ast::BinaryOp>, mut self, alt!(
+        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("+")   >> (ast::BinaryOp::Plus)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("-") >> (ast::BinaryOp::Minus)))
+    ));
+
+    method!(pub binary_op_compare<Parser, &str, ast::BinaryOp>, mut self, alt!(
+        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("<=")   >> (ast::BinaryOp::LowerEq)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!(">=") >> (ast::BinaryOp::GreaterEq)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("<") >> (ast::BinaryOp::Lower)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!(">") >> (ast::BinaryOp::Greater)))
+    ));
+
+    method!(pub binary_op_eq<Parser, &str, ast::BinaryOp>, mut self, alt!(
+        preceded!(call_m!(self.space_opt), do_parse!(tag_s!("==")   >> (ast::BinaryOp::Equal)))
+        | preceded!(call_m!(self.space_opt), do_parse!(tag_s!("!=") >> (ast::BinaryOp::NotEqual)))
+    ));
+
+
+    // Keywords : Do not forget to update check_keyword below.
+    method!(pub kwd_int     <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("int")) );
+    method!(pub kwd_struct  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("struct")) );
+    method!(pub kwd_sizeof  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("sizeof")) );
+    method!(pub kwd_if      <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("if")) );
+    method!(pub kwd_else    <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("else")) );
+    method!(pub kwd_while   <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("while")) );
+    method!(pub kwd_return  <Parser, &str, &str>, mut self, preceded!(call_m!(self.space_opt), tag_s!("return")) );
+
+    method!(pub identifier <Parser, &str, ast::Ident >, mut self,
+        preceded!(call_m!(self.space_opt),
+        do_parse!(
+            as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
+            res: expr_opt!(check_keyword(as_str)) >>
+            (res)
         ))
-    |   sp!(do_parse!(
-        hexa: hex >>
-        value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
-        (ast::Expression::Int(value))
-        ))
-    |   sp!(do_parse!(
-        oct: oct >>
-        value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
-        (ast::Expression::Int(value))
-        ))
-    |   sp!(do_parse!(tag!("0") >> (ast::Expression::Int(0))))
-    |   sp!(do_parse!(ch: character >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> (ast::Expression::Int(res)))) // It seems tha \x7f confuses the regexp.
+    );
 
-));
-
-named!(pub unary_op<&str, ast::UnaryOp>, alt!(
-    sp!(do_parse!(tag_s!("!")   >> (ast::UnaryOp::Not)))
-    | sp!(do_parse!(tag_s!("-") >> (ast::UnaryOp::Minus)))
-));
-
-named!(pub binary_op_mul<&str, ast::BinaryOp>, alt!(
-    sp!(do_parse!(tag_s!("*")   >> (ast::BinaryOp::Mult)))
-    | sp!(do_parse!(sp!(tag_s!("/")) >> (ast::BinaryOp::Div)))
-));
-
-named!(pub binary_op_arith<&str, ast::BinaryOp>, alt!(
-    sp!(do_parse!(tag_s!("+")   >> (ast::BinaryOp::Plus)))
-    | sp!(do_parse!(tag_s!("-") >> (ast::BinaryOp::Minus)))
-));
-
-named!(pub binary_op_compare<&str, ast::BinaryOp>, alt!(
-    sp!(do_parse!(tag_s!("<=")   >> (ast::BinaryOp::LowerEq)))
-    | sp!(do_parse!(tag_s!(">=") >> (ast::BinaryOp::GreaterEq)))
-    | sp!(do_parse!(tag_s!("<") >> (ast::BinaryOp::Lower)))
-    | sp!(do_parse!(tag_s!(">") >> (ast::BinaryOp::Greater)))
-));
-
-named!(pub binary_op_eq<&str, ast::BinaryOp>, alt!(
-    sp!(do_parse!(tag_s!("==")   >> (ast::BinaryOp::Equal)))
-    | sp!(do_parse!(tag_s!("!=") >> (ast::BinaryOp::NotEqual)))
-));
-
-
-// Keywords :
-named!(pub kwd_int <&str, &str>, sp!(tag_s!("int")) );
-named!(pub kwd_struct <&str, &str>, sp!(tag_s!("struct")) );
-named!(pub kwd_sizeof <&str, &str>, sp!(tag_s!("sizeof")) );
-named!(pub kwd_if <&str, &str>, sp!(tag_s!("if")) );
-named!(pub kwd_else <&str, &str>, sp!(tag_s!("else")) );
-named!(pub kwd_while <&str, &str>, sp!(tag_s!("while")) );
-named!(pub kwd_return <&str, &str>, sp!(tag_s!("return")) );
-
+}
 // Identifiers
 fn check_keyword(id: &str) -> Option<String> {
     let kwds = vec!["int", "struct", "sizeof", "if", "else", "while", "return"];
@@ -131,11 +148,3 @@ fn check_keyword(id: &str) -> Option<String> {
         Some(String::new() + id)
     }
 }
-
-named!(pub identifier <&str, ast::Ident >,
-    sp!(do_parse!(
-        as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
-        res: expr_opt!(check_keyword(as_str)) >>
-        (res)
-    ))
-);

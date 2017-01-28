@@ -36,8 +36,8 @@ fn main(){
         }
         let mut p = parse::parser::Parser::new();
 
-        let ret = match p.file(&s) {
-            (mut p, IResult::Done(_,_)) => 0,
+        let ret = match p.file(&s.trim_right()) {
+            (mut p, IResult::Done(rem,_)) => {println!("{:?}", rem);0},
             (mut p, IResult::Incomplete(_)) => {println!("INC");1},
             (mut p, IResult::Error(e)) => {println!("{:?}", e);1},
         };

@@ -13,19 +13,14 @@ use std::process::exit;
 //use std::boxed;
 
 fn main(){
-    match parse::lexer::convert_char("a"){
-        Some(a) => println!("'a' {}", a),
-        _ => println!("Argh"),
-    }
-    match parse::lexer::integer(" '\\\'' "){ IResult::Done(rem, ast::Expression::Int(i)) => println!("{:?} {:?}", i, rem), _ => println!("Argh", ),}
-    //assert!(match parse::lexer::integer("'a'"){ IResult::Done(rem, ast::Expression::Int(i)) => i == 97 && rem == &""[..], _ => false});
+    let mut p = parse::parser::Parser::new();
 
-        let ret = match parse::lexer::integer("'\x7f'") {
-            IResult::Done(_,_) => 0,
-            IResult::Incomplete(_) => {println!("INC");1},
-            IResult::Error(e) => {println!("ERR, {}", e);1},
-        };
-        println!("{:?}", ret);
-        exit(ret);
+    let ret = match p.file(" int main( ) { }") {
+        (mut p, IResult::Done(_,_)) => 0,
+        (mut p, IResult::Incomplete(i)) => {println!("INC {:?}", i);1},
+        (mut p, IResult::Error(e)) => {println!("{:?}", e);1},
+    };
+    println!("{:?}", ret);
+
 
 }
