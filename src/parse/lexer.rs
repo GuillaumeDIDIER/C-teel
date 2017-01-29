@@ -1,4 +1,5 @@
 use parse::ast;
+use parse::ast::*;
 //use std::char;
 //use std::string;
 use nom::multispace;
@@ -80,26 +81,34 @@ impl Parser {
 
     method!(oct<Parser, &str, &str>, self, re_find!(r"^0[0-7]*") );
 
-    method!(pub integer<Parser, &str, ast::Expression >, mut self, alt!(
-            terminated!(do_parse!(
-            decimal: call_m!(self.dec) >>
-            value: expr_opt!( decimal.parse::<i64>().ok()) >>
-            ({self.location.column += decimal.len(); ast::Expression::Int(value)})
-            ), call_m!(self.space_opt))
-        |   terminated!(do_parse!(
-            hexa: call_m!(self.hex) >>
-            value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
-            ({self.location.column += hexa[0].len(); ast::Expression::Int(value)})
-            ), call_m!(self.space_opt))
-        |   terminated!(do_parse!(
-            oct: call_m!(self.oct) >>
-            value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
-            ({self.location.column += oct.len(); ast::Expression::Int(value)})
-            ), call_m!(self.space_opt))
-        |   terminated!(do_parse!(tag!("0") >> ({self.location.column += 1; ast::Expression::Int(0)})), call_m!(self.space_opt))
-        |   terminated!(do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> ({self.location.column += ch[0].len() + 1; ast::Expression::Int(res)})), call_m!(self.space_opt)) // It seems tha \x7f confuses the regexp.
+    method!(pub integer<Parser, &str, Node<Expression> >, mut self,
+        do_parse!(
+            start: call_m!(self.getLocation) >>
+            t: alt!(
+                terminated!(do_parse!(
+                decimal: call_m!(self.dec) >>
+                value: expr_opt!( decimal.parse::<i64>().ok()) >>
+                ({self.location.column += decimal.len(); ast::Expression::Int(value)})
+                ), call_m!(self.space_opt))
+            |   terminated!(do_parse!(
+                hexa: call_m!(self.hex) >>
+                value: expr_opt!( i64::from_str_radix(hexa[1], 16).ok() ) >>
+                ({self.location.column += hexa[0].len(); ast::Expression::Int(value)})
+                ), call_m!(self.space_opt))
+            |       terminated!(do_parse!(
+                oct: call_m!(self.oct) >>
+                value: expr_opt!(i64::from_str_radix(oct, 8).ok() ) >>
+                ({self.location.column += oct.len(); ast::Expression::Int(value)})
+                ), call_m!(self.space_opt))
+            |   terminated!(do_parse!(tag!("0") >> ({self.location.column += 1; ast::Expression::Int(0)})), call_m!(self.space_opt))
+            |   terminated!(do_parse!(ch: call_m!(self.character) >> res: expr_opt!(convert_char(ch[2])) >> take_s!(1)>> ({self.location.column += ch[0].len() + 1; ast::Expression::Int(res)})), call_m!(self.space_opt)) // It seems tha \x7f confuses the regexp.
 
-    ));
+            ) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: t})
+
+        )
+    );
 
 
 
@@ -133,32 +142,104 @@ impl Parser {
 
 
     // Operator groups.
-    method!(pub unary_op<Parser, &str, ast::UnaryOp>, mut self, alt!(
-        do_parse!(call_m!(self.op_not)   >> (ast::UnaryOp::Not))
-        | do_parse!(call_m!(self.op_minus) >> (ast::UnaryOp::Minus))
+    method!(pub unary_op<Parser, &str, Node<UnaryOp>>, mut self, alt!(
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_not)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: UnaryOp::Not}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_minus) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: UnaryOp::Minus}))
     ));
 
-    method!(pub binary_op_mul<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        do_parse!(call_m!(self.op_star)   >> (ast::BinaryOp::Mult))
-        | do_parse!(call_m!(self.op_div) >> (ast::BinaryOp::Div))
+    method!(pub binary_op_mul<Parser, &str, Node<BinaryOp> >, mut self, alt!(
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_star)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Mult}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_div)    >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Div}))
     ));
 
-    method!(pub binary_op_arith<Parser, &str, ast::BinaryOp>, mut self, alt!(
-        do_parse!(call_m!(self.op_plus)   >> (ast::BinaryOp::Plus))
-        | do_parse!(call_m!(self.op_minus) >> (ast::BinaryOp::Minus))
+    method!(pub binary_op_arith<Parser, &str, Node<BinaryOp> >, mut self, alt!(
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_plus)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Plus}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_minus)  >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Minus}))
     ));
 
-    method!(pub binary_op_compare<Parser, &str, ast::BinaryOp>, mut self, alt!(
-          do_parse!(call_m!(self.op_le)   >> (ast::BinaryOp::LowerEq))
-        | do_parse!(call_m!(self.op_ge) >> (ast::BinaryOp::GreaterEq))
-        | do_parse!(call_m!(self.op_lt) >> (ast::BinaryOp::Lower))
-        | do_parse!(call_m!(self.op_gt) >> (ast::BinaryOp::Greater))
+    method!(pub binary_op_compare<Parser, &str, Node<BinaryOp> >, mut self, alt!(
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_le) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::LowerEq}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_ge) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::GreaterEq}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_lt) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Lower}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_gt) >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Greater}))
     ));
 
-    method!(pub binary_op_eq<Parser, &str, ast::BinaryOp>, mut self, alt!(
-          do_parse!(call_m!(self.op_double_eq)  >> (ast::BinaryOp::Equal))
-        | do_parse!(call_m!(self.op_not_eq)     >> (ast::BinaryOp::NotEqual))
+    method!(pub binary_op_eq<Parser, &str, Node<BinaryOp> >, mut self, alt!(
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_double_eq)  >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Equal}))
+        | do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_not_eq)     >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::NotEqual}))
     ));
+
+    method!(pub binary_op_and<Parser, &str, Node<BinaryOp> >, mut self,
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_and)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::And}))
+    );
+
+    method!(pub binary_op_or<Parser, &str, Node<BinaryOp> >, mut self,
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_or)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Or}))
+    );
+
+    method!(pub binary_op_affect<Parser, &str, Node<BinaryOp> >, mut self,
+          do_parse!(
+            start: call_m!(self.getLocation) >>
+            call_m!(self.op_simple_eq)   >>
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: BinaryOp::Affect}))
+    );
 
     // Keywords : Do not forget to update check_keyword below.
     method!(pub kwd_int     <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("int"    ) >> ({self.location.column += 3; s})), call_m!(self.space_opt)) );
@@ -169,12 +250,15 @@ impl Parser {
     method!(pub kwd_while   <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("while"  ) >> ({self.location.column += 5; s})), call_m!(self.space_opt)) );
     method!(pub kwd_return  <Parser, &str, &str>, mut self, terminated!(do_parse!(s: tag_s!("return" ) >> ({self.location.column += 6; s})), call_m!(self.space_opt)) );
 
-    method!(pub identifier <Parser, &str, ast::Ident >, mut self,
+    method!(pub identifier <Parser, &str, Node<Ident> >, mut self,
         terminated!(
         do_parse!(
+            start: call_m!(self.getLocation) >>
             as_str: re_find!(r"^[a-zA-Z_][a-zA-Z_1-9]*") >>
             res: expr_opt!(check_keyword(as_str)) >>
-            ({self.location.column += res.len(); res})
+            stop: call_m!(self.getLocation) >>
+            (Node{start: start, stop: stop, t: {self.location.column += res.len(); res} } )
+
         ), call_m!(self.space_opt))
     );
 

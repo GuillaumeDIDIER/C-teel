@@ -11,6 +11,13 @@ pub struct Location {
 }
 
 #[derive(Clone)]
+pub struct Node<T> {
+    pub start: Location,
+    pub stop: Location,
+    pub t: T
+}
+
+#[derive(Clone)]
 pub enum UnaryOp{
     Not,
     Minus,
@@ -35,66 +42,58 @@ pub enum BinaryOp{
 
 #[derive(Clone)]
 pub enum Param {
-    Int(Ident),
-    Struct(Ident, Ident),
+    Int(Node<Ident>),
+    Struct(Node<Ident>, Node<Ident>),
 }
 
 #[derive(Clone)]
 pub enum Expression {
     Int(i64),
-    Ident(Ident),
-    MembDeref(Box<Expression>, Ident),
-    Call(Ident, Vec<Expression>),
-    Unary(UnaryOp, Box<Expression>),
-    Binary(Box<Expression>, BinaryOp, Box<Expression>),
-    Sizeof(Ident),
-    Parens(Box<Expression>),
+    Ident(Node<Ident>),
+    MembDeref(Box<Node<Expression>>, Node<Ident>),
+    Call(Node<Ident>, Vec<Node<Expression>>),
+    Unary(Node<UnaryOp>, Box<Node<Expression>>),
+    Binary(Box<Node<Expression>>, Node<BinaryOp>, Box<Node<Expression>>),
+    Sizeof(Node<Ident>),
+    Parens(Box<Node<Expression>>),
 }
 
-pub type DeclType = (Ident, Vec<DeclVar>);
+pub type DeclType = (Node<Ident>, Vec<Node<DeclVar>>);
+
+
 
 #[derive(Clone)]
 pub enum DeclVar {
-    Int(Vec<Ident>),
-    Struct(Ident, Vec<Ident>),
+    Int(Vec<Node<Ident>>),
+    Struct(Node<Ident>, Vec<Node<Ident>>),
 }
 
+// Function declaration
 #[derive(Clone)]
-pub enum DeclFuncType {
-    Int(Ident, Vec<Param>, Bloc),
-    Struct(Ident, Ident, Vec<Param>, Bloc),
+pub enum DeclFunc {
+    Int(Node<Ident>, Vec<Node<Param>>, Node<Bloc>),
+    Struct(Node<Ident>, Node<Ident>, Vec<Node<Param>>, Node<Bloc>),
 }
 
+
+// Declarations
 #[derive(Clone)]
-pub struct DeclFunc {
-    pub start: Location,
-    pub stop: Location,
-    pub t: DeclFuncType,
+pub enum Declaration {
+    Var(Node<DeclVar>),
+    Type(Node<DeclType>),
+    Func(Node<DeclFunc>),
 }
 
-#[derive(Clone)]
-pub enum DeclarationType {
-    Var(DeclVar),
-    Type(DeclType),
-    Func(DeclFunc),
-}
 
-#[derive(Clone)]
-pub struct Declaration {
-    pub start: Location,
-    pub stop:  Location,
-    pub t: DeclarationType,
-}
-
-pub type Bloc = (Vec<DeclVar>,Vec<Statement>);
+pub type Bloc = (Vec<Node<DeclVar>>,Vec<Node<Statement>>);
 
 #[derive(Clone)]
 pub enum Statement {
-    Expr(Expression),
-    If(Expression, Box<Statement>),
-    IfElse(Expression, Box<Statement>, Box<Statement>),
-    While(Expression, Box<Statement>),
-    Return(Expression),
-    Bloc(Bloc),
+    Expr(Node<Expression>),
+    If(Node<Expression>, Box<Node<Statement>>),
+    IfElse(Node<Expression>, Box<Node<Statement>>, Box<Node<Statement>>),
+    While(Node<Expression>, Box<Node<Statement>>),
+    Return(Node<Expression>),
+    Bloc(Node<Bloc>),
     Noop,
 }
