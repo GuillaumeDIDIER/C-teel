@@ -28,12 +28,9 @@ fn main(){
     println!("Using input file: {}", input);
 
 
-    if let Some(mut f) = File::open(input).ok(){
+    if let Ok(mut f) = File::open(input) {
         let mut s = String::new();
-        match f.read_to_string(&mut s){
-            Err(_) => exit(-2),
-            Ok(_) => (),
-        }
+        if f.read_to_string(&mut s).is_err() { exit(-2) }
         let p = parse::parser::Parser::new();
 
         let ret = match p.file(&s) {
