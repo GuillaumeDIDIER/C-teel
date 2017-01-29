@@ -7,15 +7,19 @@ pub struct Parser {
     pub location: Location,
 }
 impl Parser {
-
     pub fn new() -> Parser {
 
-        Parser{location: Location{line: 0, column:0} }
+        Parser {
+            location: Location {
+                line: 0,
+                column: 0,
+            },
+        }
     }
 
-    pub fn get_location<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, Location>){
+    pub fn get_location<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, Location>) {
         let l = Location::clone(&self.location);
-        (self,nom::IResult::Done(input, l))
+        (self, nom::IResult::Done(input, l))
     }
 
     method!(pub file<Parser, &str,  Vec< Node<Declaration> > >, mut self,
@@ -306,32 +310,43 @@ impl Parser {
         stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: Expression::Sizeof(id)})
     ));
-
 }
 
-pub fn build_deref_tree(first: Node<Expression> , v: Vec<Node<Ident>>) -> Node<Expression>{
+pub fn build_deref_tree(first: Node<Expression>, v: Vec<Node<Ident>>) -> Node<Expression> {
     let mut vm = v.clone();
     build_deref_tree_aux(first, &mut vm)
 }
 
-pub fn build_deref_tree_aux(first: Node<Expression> , v: &mut Vec<Node<Ident>>) -> Node<Expression> {
+pub fn build_deref_tree_aux(first: Node<Expression>, v: &mut Vec<Node<Ident>>) -> Node<Expression> {
     if let Some(i) = v.pop() {
         let second = build_deref_tree_aux(first.clone(), v);
 
-        Node{start: first.start, stop: second.stop.clone(), t: Expression::MembDeref(Box::new(second), i)}
+        Node {
+            start: first.start,
+            stop: second.stop.clone(),
+            t: Expression::MembDeref(Box::new(second), i),
+        }
     } else {
         first
     }
 }
-fn build_binop_left_assoc_tree(first: Node<Expression> , v: Vec<(Node<BinaryOp>, Node<Expression>)>) -> Node<Expression> {
+fn build_binop_left_assoc_tree(first: Node<Expression>,
+                               v: Vec<(Node<BinaryOp>, Node<Expression>)>)
+                               -> Node<Expression> {
     let mut vm = v.clone();
     build_binop_left_assoc_tree_aux(first, &mut vm)
 }
 
-fn build_binop_left_assoc_tree_aux(first: Node<Expression>, v: &mut Vec<(Node<BinaryOp>,Node<Expression>)>) -> Node<Expression> {
+fn build_binop_left_assoc_tree_aux(first: Node<Expression>,
+                                   v: &mut Vec<(Node<BinaryOp>, Node<Expression>)>)
+                                   -> Node<Expression> {
     if let Some((op, second)) = v.pop() {
         let first = build_binop_left_assoc_tree_aux(first, v);
-        Node{start: first.start.clone(), stop: second.stop.clone(), t: Expression::Binary(Box::new(first), op, Box::new(second))}
+        Node {
+            start: first.start.clone(),
+            stop: second.stop.clone(),
+            t: Expression::Binary(Box::new(first), op, Box::new(second)),
+        }
     } else {
         first
     }

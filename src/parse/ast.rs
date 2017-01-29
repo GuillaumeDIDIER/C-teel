@@ -1,27 +1,27 @@
 
-pub type Ident =  String;
+pub type Ident = String;
 
 #[derive(Clone)]
 pub struct Location {
     pub line: usize,
-    pub column: usize
+    pub column: usize,
 }
 
 #[derive(Clone)]
 pub struct Node<T> {
     pub start: Location,
     pub stop: Location,
-    pub t: T
+    pub t: T,
 }
 
 #[derive(Clone)]
-pub enum UnaryOp{
+pub enum UnaryOp {
     Not,
     Minus,
 }
 
 #[derive(Clone)]
-pub enum BinaryOp{
+pub enum BinaryOp {
     Affect,
     Equal,
     NotEqual,
@@ -82,7 +82,7 @@ pub enum Declaration {
 }
 
 
-pub type Bloc = (Vec<Node<DeclVar>>,Vec<Node<Statement>>);
+pub type Bloc = (Vec<Node<DeclVar>>, Vec<Node<Statement>>);
 
 #[derive(Clone)]
 pub enum Statement {

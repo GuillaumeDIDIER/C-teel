@@ -6,30 +6,29 @@ use parse::parser::Parser;
 
 
 
-pub fn convert_char(ch: &str)->Option<i64>{
-    if ch.len() == 1{
+pub fn convert_char(ch: &str) -> Option<i64> {
+    if ch.len() == 1 {
         if let Some(c) = ch.chars().next() {
 
-                return Some(c as i64);
+            return Some(c as i64);
 
         }
-        return None
+        return None;
     } else if ch.len() == 2 {
         return match ch {
             "\\\\" => Some(92),
             "\\\'" => Some(39),
             "\\\"" => Some(34),
-            _ => None
+            _ => None,
         };
     } else if ch.len() == 4 {
         return i64::from_str_radix(&ch[2..], 16).ok();
     }
 
-    return None
+    return None;
 }
 
 impl Parser {
-
     method!(comment<Parser, &str, String>, self, alt!(
         do_parse!(
             tag_s!("/*")                  >>
@@ -250,7 +249,6 @@ impl Parser {
 
         ), call_m!(self.space_opt))
     );
-
 }
 // Identifiers
 fn check_keyword(id: &str) -> Option<String> {
