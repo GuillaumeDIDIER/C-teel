@@ -1,7 +1,4 @@
 
-//use std::vec;
-//use std::boxed;
-
 pub type Ident =  String;
 
 #[derive(Clone)]

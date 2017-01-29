@@ -1,15 +1,7 @@
 
 use parse::ast::*;
 use nom;
-//use std::vec;
 
-
-//use parse::lexer;
-
-
-fn get_null_location<'a>(input: &'a str) -> nom::IResult<&'a str, Location>{
-    nom::IResult::Done(input, Location{line:0, column:0})
-}
 
 pub struct Parser {
     pub location: Location,
@@ -21,8 +13,8 @@ impl Parser {
         Parser{location: Location{line: 0, column:0} }
     }
 
-    pub fn getLocation<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, Location>){
-        let l =Location::clone(&self.location);
+    pub fn get_location<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, Location>){
+        let l = Location::clone(&self.location);
         (self,nom::IResult::Done(input, l))
     }
 
@@ -40,32 +32,32 @@ impl Parser {
     // Variable declaration
     method!(pub decl_vars<Parser, &str, Node<DeclVar> >, mut self, alt_complete!(
         do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_int) >>
             ids: separated_nonempty_list!(call_m!(self.comma), call_m!(self.identifier)) >>
             call_m!(self.semicolon) >>
-            stop: call_m!(self.getLocation) >>
+            stop: call_m!(self.get_location) >>
             (Node{start: start, stop: stop, t: DeclVar::Int(ids)}))
         | do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_struct) >>
             id: call_m!(self.identifier) >>
             ids: separated_nonempty_list!(call_m!(self.comma), preceded!(call_m!(self.op_star), call_m!(self.identifier))) >>
             call_m!(self.semicolon) >>
-            stop: call_m!(self.getLocation) >>
+            stop: call_m!(self.get_location) >>
             (Node{start: start, stop: stop, t: DeclVar::Struct(id, ids)}))
     ));
 
     // Type
     method!(pub decl_typ<Parser, &str, Node<DeclType>>, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         call_m!(self.kwd_struct) >>
         id: call_m!(self.identifier) >>
         call_m!(self.brace_open) >>
         vars: many0!(call_m!(self.decl_vars)) >>
         call_m!(self.brace_close) >>
         call_m!(self.semicolon) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: (id, vars)})
     ));
 
@@ -74,14 +66,14 @@ impl Parser {
     //   Parameter (aux)
     method!(pub param<Parser, &str, Node<Param>>, mut self, alt_complete!(
         do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_int) >>
             id: call_m!(self.identifier) >>
             (Node{start: start, stop: id.stop.clone(), t: Param::Int(id)})
         )
         |
         do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_struct) >>
             typ: call_m!(self.identifier) >>
             call_m!(self.op_star) >>
@@ -101,7 +93,7 @@ impl Parser {
     );
 
     method!(pub decl_fct<Parser, &str, Node<DeclFunc>>, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         t: alt_complete!(
             do_parse!(
                 call_m!(self.kwd_int) >> funct: call_m!(self.decl_fct_aux) >>
@@ -113,66 +105,66 @@ impl Parser {
                 (DeclFunc::Struct(id, funct.0, funct.1, funct.2))
             )
         ) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: t})
     ));
 
 
     method!(pub decl<Parser, &str, Node<Declaration> >, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         t: alt_complete!(
               do_parse!(v: call_m!(self.decl_vars) >> (Declaration::Var(v)))
             | do_parse!(f: call_m!(self.decl_fct) >> (Declaration::Func(f)))
             | do_parse!(t: call_m!(self.decl_typ) >> (Declaration::Type(t)))
         ) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: t})
     ));
 
     // Bloc
     method!(pub bloc<Parser, &str, Node<Bloc> >, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         call_m!(self.brace_open) >>
         vars: many0!(call_m!(self.decl_vars)) >>
         stmts: many0!(call_m!(self.statement)) >>
         call_m!(self.brace_close) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: (vars,stmts)})
     ));
 
     // Statements
     method!(pub statement<Parser, &str, Node<Statement> >, mut self, alt_complete!(
         do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.semicolon) >>
-            stop: call_m!(self.getLocation) >>
+            stop: call_m!(self.get_location) >>
             (Node{start: start, stop: stop, t: Statement::Noop}))
         | do_parse!(
             e: call_m!(self.expr) >>
             call_m!(self.semicolon) >>
-            stop: call_m!(self.getLocation) >>
+            stop: call_m!(self.get_location) >>
             (Node{start: e.start.clone(), stop: stop, t: Statement::Expr(e)}))
         | do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_if) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             if_s: call_m!(self.statement) >>
             call_m!(self.kwd_else) >>
             else_s: call_m!(self.statement) >>
             (Node{start: start, stop: else_s.stop.clone(), t: Statement::IfElse(cond, Box::new(if_s), Box::new(else_s))}))
         | do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_if) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             if_s: call_m!(self.statement) >>
             (Node{start: start, stop: if_s.stop.clone(), t: Statement::If(cond, Box::new(if_s))}))
         | do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_while) >> call_m!(self.parens_open) >> cond: call_m!(self.expr)>> call_m!(self.parens_close) >>
             while_s: call_m!(self.statement) >>
             (Node{start: start, stop: while_s.stop.clone(), t: Statement::While(cond, Box::new(while_s))}))
         | do_parse!(
-            start: call_m!(self.getLocation) >>
+            start: call_m!(self.get_location) >>
             call_m!(self.kwd_return) >> val: call_m!(self.expr) >> call_m!(self.semicolon) >>
-            stop: call_m!(self.getLocation) >>
+            stop: call_m!(self.get_location) >>
             (Node{start: start, stop: stop, t: Statement::Return(val)}))
         | do_parse!(blk: call_m!(self.bloc) >> (Node{start: blk.start.clone(), stop: blk.stop.clone(), t: Statement::Bloc(blk)}))
     ));
@@ -291,27 +283,27 @@ impl Parser {
         call_m!(self.parens_open) >>
         params: separated_list!(call_m!(self.comma), call_m!(self.expr)) >>
         call_m!(self.parens_close) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: id.start.clone(), stop: stop, t: Expression::Call(id, params)})
     ));
 
     method!(parens<Parser, &str, Node<Expression> >, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         call_m!(self.parens_open) >>
         sub_expr: call_m!(self.expr) >>
         call_m!(self.parens_close) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: Expression::Parens(Box::new(sub_expr))})
     ));
 
     method!(sizeof_struct<Parser, &str, Node<Expression> >, mut self, do_parse!(
-        start: call_m!(self.getLocation) >>
+        start: call_m!(self.get_location) >>
         call_m!(self.kwd_sizeof) >>
         call_m!(self.parens_open) >>
         call_m!(self.kwd_struct) >>
         id: call_m!(self.identifier) >>
         call_m!(self.parens_close) >>
-        stop: call_m!(self.getLocation) >>
+        stop: call_m!(self.get_location) >>
         (Node{start: start, stop: stop, t: Expression::Sizeof(id)})
     ));
 
