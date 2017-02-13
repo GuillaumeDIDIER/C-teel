@@ -16,7 +16,7 @@ fn main(){
     let p = parse::parser::Parser::new();
 
     let ret = match p.file("int main(){{(a\n);}}") {
-        (p, IResult::Done(rem, ast)) => {println!(    "{:?}:{:?}: {:?}", ast[ast.len()-1].stop.line, ast[ast.len()-1].stop.column, rem);0},
+        (_, IResult::Done(rem, ast)) => {println!(    "{:?}:{:?}: {:?}", ast[ast.len()-1].stop.line, ast[ast.len()-1].stop.column, rem);0},
         (p, IResult::Incomplete(i)) =>  {println!("INC {:?}:{:?}: {:?}", p.location.line, p.location.column, i)  ;1},
         (p, IResult::Error(e)) =>       {println!("ERR {:?}:{:?}: {:?}", p.location.line, p.location.column, e)  ;1},
     };
