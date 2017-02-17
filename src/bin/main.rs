@@ -114,6 +114,7 @@ impl Driver {
             Err(e) => {println!("{:?}", e);return 1;},
         };
         if let Mode::Type = self.mode {
+            println!("{:#?}", tast);
             return 0;
         }
         // Finish...

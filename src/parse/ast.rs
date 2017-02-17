@@ -14,13 +14,13 @@ pub struct Node<T> {
     pub t: T,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum UnaryOp {
     Not,
     Minus,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum BinaryOp {
     Affect,
     Equal,

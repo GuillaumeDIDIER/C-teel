@@ -4,6 +4,7 @@ pub use parse::ast::BinaryOp;
 
 pub type Ident = String;
 
+#[derive(Debug)]
 pub struct File {
     pub variables: HashMap<String, Var>, // Globals
     pub function_declarations: HashMap<String, FunctionProto>, // Symbols
@@ -11,13 +12,13 @@ pub struct File {
     pub function_definitions: Vec<Function>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Var {
     pub typ: Type,
     pub name: String,
 }
 
-#[derive(Clone,PartialEq)]
+#[derive(Clone,PartialEq, Debug)]
 pub enum Type {
     Int,
     Struct(String),
@@ -25,12 +26,14 @@ pub enum Type {
     Null,
 }
 
+#[derive(Debug)]
 pub struct FunctionProto {
     pub ret_type: Type,
     pub name : String, // Keep the symbol under hand.
     pub params_type : Vec<Type>,
 }
 
+#[derive(Debug)]
 pub struct Function {
     pub ret_type: Type,
     pub name : String, // Keep the symbol under hand.
@@ -39,22 +42,19 @@ pub struct Function {
     pub blk : Bloc,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Struct {
     pub members: Vec<Var>,
     pub index: HashMap<String, usize>,
 }
 
+#[derive(Debug)]
 pub struct Bloc {
     pub decls: HashMap<String, Var>,
     pub stmts: Vec<Statement>,
 }
 
-/*pub struct Statement {
-    pub ret_type: Type,
-    pub kind: StatementKind,
-}*/
-
+#[derive(Debug)]
 pub enum Statement {
     Noop,
     Expr(Expression),
@@ -65,11 +65,13 @@ pub enum Statement {
     Bloc(Bloc),
 }
 
+#[derive(Debug)]
 pub struct Expression {
     pub typ: Type,
     pub kind: ExprKind
 }
 
+#[derive(Debug)]
 pub enum ExprKind {
     Const(i64),
     Lvalue(String),
