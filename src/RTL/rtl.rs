@@ -1,16 +1,19 @@
 use RTL::rtltree::*;
 use RTL::label::*;
 use RTL::register::*;
+use RTL::ops::*;
 use std::iter::FromIterator;
 use typing::ast as tast;
 use std::collections::{HashMap, HashSet};
+//use std::boxed::Box;
+//use std::ops::Deref;
 
 impl File {
     pub fn from_typer_ast(typer_ast: tast::File) -> Result<File, String> {
         let mut file = File{globals: Vec::new(), functions: Vec::new()};
         file.globals = Vec::from_iter(typer_ast.variables.keys().map(|s: &String|{s.clone()}));
         for function in typer_ast.function_definitions {
-            match FuncDefinition::from_typer_function(function, &typer_ast.types) {
+            match FuncDefinition::from_typer_function(function, &typer_ast.types/*, &file.globals*/) {
                 Ok(func_def) => {file.functions.push(func_def);},
                 Err(e) => {return Err(e);},
 
@@ -110,8 +113,84 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                     Ok(exit) // Noop !
                 }
             },
+            tast::ExprKind::Lvalue(name) => {
+                if let Some(result) = result_reg {
+                    let label = self.label_allocator.fresh();
+                    if let Some(src_register) = self.find_var(&name) {
+                        self.instructions.insert(label.clone(), Instruction::BinaryOp(x64BinaryOp::mov, src_register, result, exit));
+                    } else { // Global Variable
+                        self.instructions.insert(label.clone(), Instruction::AccessGlobal(name, result, exit));
+                    }
+                    Ok(label)
+                } else {
+                    Ok(exit) // Noop !
+                }
+            },
+            tast::ExprKind::Sizeof(typename) => {
+                if let Some(result) = result_reg {
+                    let label = self.label_allocator.fresh();
+                    let ivalue = self.types[&typename].size();
+                    self.instructions.insert(label.clone(), Instruction::Const(ivalue, result, exit));
+                    Ok(label)
+                } else {
+                    Ok(exit) // Noop !
+                }
+            },
+            tast::ExprKind::MembDeref(box_expr, membername) => {
+                if let tast::Type::Struct(typename) = box_expr.typ.clone() {
+                    let ref typ = self.types[&typename];
+                    let index = typ.index[&membername];
+                    if let Some(result) = result_reg {
+                        let label = self.label_allocator.fresh();
+                        let src_register = self.register_allocator.fresh();
+                        self.instructions.insert(label.clone(), Instruction::Load(src_register, index as i64 * 8 , result, exit));
+                        self.expression(*box_expr, label, Some(src_register))
+                    } else {
+                        self.expression(*box_expr, exit, None)
+                    }
+                } else {
+                    panic!("Dereferencing of non struct type, typer failed.");
+                }
+            },
+            tast::ExprKind::Unary(op, box_expr) => {
+                match op {
+                    tast::UnaryOp::Not => {
+                        /*if let Some(result) = result_reg {
+                            let label1 = self.label_allocator.fresh();
+                            let label2 = self.label_allocator.fresh();
+                            let src_register = self.register_allocator.fresh();
+                            self.instructions.insert(label1.clone(), Instruction::Const(0, result, label2.clone()));
+                            self.instructions.insert(label2.clone(), Instruction::BinaryOp(x64BinaryOp::sub, src_register, result, exit));
+                            self.expression(*box_expr, label1, Some(src_register))
+                        } else {
+                            self.expression(*box_expr, exit, None)
+                        }*/
+                        Err(String::from("Unimplemented"))
+                    },
+                    tast::UnaryOp::Minus => {
+                        if let Some(result) = result_reg {
+                            let label1 = self.label_allocator.fresh();
+                            let label2 = self.label_allocator.fresh();
+                            let src_register = self.register_allocator.fresh();
+                            self.instructions.insert(label1.clone(), Instruction::Const(0, result, label2.clone()));
+                            self.instructions.insert(label2.clone(), Instruction::BinaryOp(x64BinaryOp::sub, src_register, result, exit));
+                            self.expression(*box_expr, label1, Some(src_register))
+                        } else {
+                            self.expression(*box_expr, exit, None)
+                        }
+                    }
+                }
+            },
             _ => Err(String::from("Unimplemented")),
         }
+    }
+    fn find_var(& self, name: &String) -> Option<Register> {
+        for scope in self.variables.iter().rev() {
+            if let Some(reg) = scope.get(name) {
+                return Some(reg.clone());
+            }
+        }
+        None
     }
 }
 
@@ -128,7 +207,7 @@ impl FuncDefinition {
         }
     }
 
-    pub fn from_typer_function(function: tast::Function, types: &HashMap<String, tast::Struct>) -> Result<FuncDefinition, String> {
+    pub fn from_typer_function(function: tast::Function, types: &HashMap<String, tast::Struct>, /*globals: &Vec<Ident>*//* Not needed, can infer that a variable is global*/) -> Result<FuncDefinition, String> {
 
         let mut builder = FuncDefinitionBuilder::new(&function, types);
         let exit = builder.exit.clone();
@@ -138,7 +217,6 @@ impl FuncDefinition {
             Ok(entry_label) => {
                 Ok(FuncDefinition::new(builder, function.name, entry_label))
             },
-
         }
     }
 }
