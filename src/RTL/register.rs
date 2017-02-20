@@ -1,7 +1,7 @@
 use std::fmt;
-use std::fmt::Debug;
+use std::fmt::Display;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Register {
     Rax,
     Rbx,
@@ -65,7 +65,7 @@ impl Register {
     }
 }
 
-impl Debug for Register {
+impl Display for Register {
     fn fmt(&self,  f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             &Register::Rax => {return write!(f, "%rax");},
