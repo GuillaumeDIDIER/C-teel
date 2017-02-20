@@ -387,7 +387,7 @@ impl tast::Statement { // Fixme : return types !!!
 }
 
 impl tast::ExprKind {
-    fn lvalue(&self) -> bool {
+    pub fn lvalue(&self) -> bool {
         match self {
             &tast::ExprKind::Lvalue(_) |  &tast::ExprKind::MembDeref(..) => true,
             _ => false,
