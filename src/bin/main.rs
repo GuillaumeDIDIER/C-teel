@@ -11,6 +11,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::process::exit;
 use std::ffi::OsString;
+use C_teel::RTL;
 //use std::boxed;
 
 enum Mode {
@@ -116,6 +117,17 @@ impl Driver {
         if let Mode::Type = self.mode {
             println!("{:#?}", tast);
             return 0;
+        }
+        let res = RTL::rtltree::File::from_typer_ast(tast);
+        match res {
+            Ok(f) => {
+                println!("{}", f);
+                println!("\n{:#?}", f);
+            },
+            Err(e) => {
+                println!("{:?}", e);
+                return 1;
+            }
         }
         // Finish...
 
