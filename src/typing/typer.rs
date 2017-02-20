@@ -404,18 +404,18 @@ impl tast::Expression {
         match expr {
             past::Expression::Int(value) => {
                 if value == 0 {
-                    Ok(tast::Expression{typ: tast::Type::Null, kind: tast::ExprKind::Const(value)})
+                    Ok(tast::Expression::new(tast::Type::Null, tast::ExprKind::Const(value)))
                 } else {
-                    Ok(tast::Expression{typ: tast::Type::Int,  kind: tast::ExprKind::Const(value)})
+                    Ok(tast::Expression::new(tast::Type::Int, tast::ExprKind::Const(value)))
                 }
             },
             past::Expression::Ident(node_ident) => {
                 for scope in vars.iter().rev() {
                     if let Some(v) = scope.get(&node_ident.t) {
-                        return Ok(tast::Expression{
-                            typ: v.typ.clone(),
-                            kind: tast::ExprKind::Lvalue(v.name.clone())
-                        });
+                        return Ok(tast::Expression::new(
+                            v.typ.clone(),
+                            tast::ExprKind::Lvalue(v.name.clone())
+                        ));
                     }
                 }
                 Err(String::from("Unknown variable"))
@@ -427,10 +427,10 @@ impl tast::Expression {
                         if let tast::Type::Struct(s) = expr.typ.clone() {
                             if let Some(typ) = types.get(&s) {
                                 if let Some(i) = typ.index.get(&node_ident.t) {
-                                    Ok(tast::Expression{
-                                        typ: typ.members[i.clone()].typ.clone(),
-                                        kind: tast::ExprKind::MembDeref(Box::new(expr), node_ident.t)
-                                    })
+                                    Ok(tast::Expression::new(
+                                        typ.members[i.clone()].typ.clone(),
+                                        tast::ExprKind::MembDeref(Box::new(expr), node_ident.t)
+                                    ))
                                 } else {
                                     Err(String::from("Non existent field in structure"))
                                 }
@@ -464,11 +464,11 @@ impl tast::Expression {
 
                     };
 
-                    Ok(tast::Expression{
-                        typ: function.ret_type.clone(),
-                        kind: tast::ExprKind::Call(node_ident.t, typed_parameters)
+                    Ok(tast::Expression::new(
+                        function.ret_type.clone(),
+                        tast::ExprKind::Call(node_ident.t, typed_parameters)
 
-                    })
+                    ))
                 } else {
                     Err(String::from("Unknown function"))
                 }
@@ -479,10 +479,10 @@ impl tast::Expression {
                         match tast::Expression::type_expression(b_n_expr.t, types, symbols, vars) {
                             Ok(expr) => {
                                 if tast::Type::Int.compatible(&expr.typ) {
-                                    Ok(tast::Expression{
-                                        typ: tast::Type::Int,
-                                        kind: tast::ExprKind::Unary(tast::UnaryOp::Minus, Box::new(expr))
-                                    })
+                                    Ok(tast::Expression::new(
+                                        tast::Type::Int,
+                                        tast::ExprKind::Unary(tast::UnaryOp::Minus, Box::new(expr))
+                                    ))
                                 } else {
                                     Err(String::from("Wrongly typed operand for minus: expected int"))
                                 }
@@ -492,10 +492,10 @@ impl tast::Expression {
                     },
                     tast::UnaryOp::Not => {
                         match tast::Expression::type_expression(b_n_expr.t, types, symbols, vars) {
-                            Ok(expr) => Ok(tast::Expression{
-                                typ: tast::Type::Int,
-                                kind: tast::ExprKind::Unary(tast::UnaryOp::Not, Box::new(expr))
-                            }),
+                            Ok(expr) => Ok(tast::Expression::new(
+                                tast::Type::Int,
+                                tast::ExprKind::Unary(tast::UnaryOp::Not, Box::new(expr))
+                            )),
                             Err(e) => Err(e)
                         }
                     }
@@ -510,11 +510,11 @@ impl tast::Expression {
                         match node_binary_op.t {
                             e @ tast::BinaryOp::Or
                             | e @ tast::BinaryOp::And => {
-                                Ok(tast::Expression{
-                                    typ: tast::Type::Int,
-                                    kind: tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
-                                })
-                            }
+                                Ok(tast::Expression::new(
+                                    tast::Type::Int,
+                                    tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
+                                ))
+                            },
                             e @ tast::BinaryOp::Equal
                             | e @ tast::BinaryOp::NotEqual
                             | e @ tast::BinaryOp::Lower
@@ -522,10 +522,10 @@ impl tast::Expression {
                             | e @ tast::BinaryOp::Greater
                             | e @ tast::BinaryOp::GreaterEq => {
                                 if lhs.typ.compatible(&rhs.typ) {
-                                    Ok(tast::Expression{
-                                        typ: tast::Type::Int,
-                                        kind: tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
-                                    })
+                                    Ok(tast::Expression::new(
+                                        tast::Type::Int,
+                                        tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
+                                    ))
                                 } else {
                                     Err(String::from("Comparing incompatible type"))
                                 }
@@ -535,10 +535,10 @@ impl tast::Expression {
                             | e @ tast::BinaryOp::Mult
                             | e @ tast::BinaryOp::Div => {
                                 if lhs.typ.compatible(&tast::Type::Int) && rhs.typ.compatible(&tast::Type::Int) {
-                                    Ok(tast::Expression{
-                                        typ: tast::Type::Int,
-                                        kind: tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
-                                    })
+                                    Ok(tast::Expression::new(
+                                        tast::Type::Int,
+                                        tast::ExprKind::Binary(Box::new(lhs), e, Box::new(rhs))
+                                    ))
                                 } else {
                                     Err(String::from("Trying to do arithmetic operation on non arithmetic type"))
                                 }
@@ -546,10 +546,10 @@ impl tast::Expression {
                             tast::BinaryOp::Affect => {
                                 if lhs.kind.lvalue() {
                                     if lhs.typ.compatible(&rhs.typ) {
-                                        Ok(tast::Expression{
-                                            typ: lhs.typ.clone(),
-                                            kind: tast::ExprKind::Binary(Box::new(lhs), tast::BinaryOp::Affect, Box::new(rhs))
-                                        })
+                                        Ok(tast::Expression::new(
+                                            lhs.typ.clone(),
+                                            tast::ExprKind::Binary(Box::new(lhs), tast::BinaryOp::Affect, Box::new(rhs))
+                                        ))
                                     } else {
                                         Err(String::from("Affectation of incompatible type"))
                                     }
@@ -565,10 +565,10 @@ impl tast::Expression {
             },
             past::Expression::Sizeof(node_ident) => {
                 if let Some(_) =  types.get(&node_ident.t){
-                    Ok(tast::Expression{
-                        typ: tast::Type::Int,
-                        kind: tast::ExprKind::Sizeof(node_ident.t)
-                    })
+                    Ok(tast::Expression::new(
+                        tast::Type::Int,
+                        tast::ExprKind::Sizeof(node_ident.t)
+                    ))
                 } else {
                     Err(String::from("Sizeof unknown type"))
                 }

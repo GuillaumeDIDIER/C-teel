@@ -68,7 +68,19 @@ pub enum Statement {
 #[derive(Debug)]
 pub struct Expression {
     pub typ: Type,
-    pub kind: ExprKind
+    pub kind: ExprKind,
+    _is_pure: bool,
+}
+
+impl Expression {
+    pub fn is_expr_pure(&self) -> bool {
+        self._is_pure
+    }
+
+    pub fn new(typ: Type, kind: ExprKind) -> Expression {
+        let is_pure = kind.is_kind_pure();
+        Expression{typ: typ, kind: kind, _is_pure: is_pure}
+    }
 }
 
 #[derive(Debug)]
@@ -80,4 +92,21 @@ pub enum ExprKind {
     Unary(UnaryOp, Box<Expression>),
     Binary(Box<Expression>, BinaryOp, Box<Expression>),
     Sizeof(String),
+}
+
+impl ExprKind {
+    pub fn is_kind_pure(&self) -> bool {
+        match self {
+            &ExprKind::Const(_) => true,
+            &ExprKind::Lvalue(_) => true,
+            &ExprKind::MembDeref(ref be, _) => be.is_expr_pure(),
+            &ExprKind::Call(..) => false, // This could change.
+            &ExprKind::Unary(_, ref be) => be.is_expr_pure(),
+            &ExprKind::Binary(ref be1, ref op, ref be2) => match op {
+                &BinaryOp::Affect => false,
+                _ => be1.is_expr_pure() && be2.is_expr_pure(),
+            },
+            &ExprKind::Sizeof(_) => true,
+        }
+    }
 }
