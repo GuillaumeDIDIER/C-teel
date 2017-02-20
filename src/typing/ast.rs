@@ -48,6 +48,12 @@ pub struct Struct {
     pub index: HashMap<String, usize>,
 }
 
+impl Struct {
+    pub fn size(& self) -> i64 {
+        8 * self.members.len() as i64 // All fields are either poniters or 64 bit ints.
+    }
+}
+
 #[derive(Debug)]
 pub struct Bloc {
     pub decls: HashMap<String, Var>,
