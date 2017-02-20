@@ -256,6 +256,6 @@ fn check_keyword(id: &str) -> Option<String> {
     if kwds.contains(&id) {
         None
     } else {
-        Some(String::new() + id)
+        Some(String::from(id))
     }
 }
