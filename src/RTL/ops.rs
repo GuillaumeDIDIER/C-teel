@@ -5,8 +5,12 @@
 #[derive(Debug)]
 pub enum x64UnaryOp {
     addi(i64),
-    setei(i64),
-    setnei(i64),
+    sete,
+    setne,
+    setl,
+    setle,
+    setg,
+    setge,
 }
 
 // Opérations binaires
@@ -17,26 +21,17 @@ pub enum x64BinaryOp {
     sub,
     mul,
     div,
-    sete,
-    setne,
-    setl,
-    setle,
-    setg,
-    setge,
+    cmp, // dest - src
+    test,// dest & src
 }
 
-// Operations de branchement unaire
+// Operations de branchement
 #[derive(Debug)]
-pub enum x64UnaryBranch {
-    jz,
-    jnz,
-    jlei(i64),
-    jgi(i64),
-}
-
-// opérations de branchement binaires
-#[derive(Debug)]
-pub enum x64BinaryBranch {
-    jl,
+pub enum x64Branch {
+    je,
+    jne,
     jle,
+    jl,
+    jge,
+    jg,
 }
