@@ -410,7 +410,7 @@ impl tast::Expression {
                 }
             },
             past::Expression::Ident(node_ident) => {
-                for scope in vars {
+                for scope in vars.iter().rev() {
                     if let Some(v) = scope.get(&node_ident.t) {
                         return Ok(tast::Expression{
                             typ: v.typ.clone(),
