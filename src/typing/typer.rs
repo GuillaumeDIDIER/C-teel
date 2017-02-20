@@ -14,14 +14,14 @@ impl tast::File {
         };
         let mut f_sbrk = tast::FunctionProto{
             ret_type: tast::Type::Void,
-            name: String::new() + "sbrk",
+            name: String::from("sbrk"),
             params_type: Vec::new(),
         };
         f_sbrk.params_type.push(tast::Type::Int);
 
         let mut f_putchar = tast::FunctionProto{
             ret_type: tast::Type::Int,
-            name: String::new() + "putchar",
+            name: String::from("putchar"),
             params_type: Vec::new(),
         };
         f_putchar.params_type.push(tast::Type::Int);
@@ -39,7 +39,7 @@ impl tast::File {
                             if file.types.contains_key(&n_type.t) {
                                 (tast::Type::Struct(n_type.t), n_name.t, params, n_blk.t)
                             } else {
-                                return Err(String::new() + "Unkown struct type");
+                                return Err(String::from("Unkown struct type"));
                             }
                         }
 
@@ -80,7 +80,7 @@ impl tast::File {
                         Ok(vars) => {
                             for v in vars {
                                 if file.variables.contains_key(&v.name) {
-                                    return Err(String::new() + "global variable redefined")
+                                    return Err(String::from("global variable redefined"))
                                 } else {
                                     file.variables.insert(v.name.clone(), v);
                                 }
@@ -143,7 +143,7 @@ impl tast::Struct {
                 Ok(vars) => {
                     for v in vars {
                         if s.index.contains_key(&v.name) {
-                            return Err(String::new() + "struct member redefined")
+                            return Err(String::from("struct member redefined"))
                         } else {
                             s.index.insert(v.name.clone(), s.members.len());
                             s.members.push(v);
@@ -178,7 +178,7 @@ impl tast::Var {
                     Ok(vars)
 
                 } else {
-                    Err(String::new() + "Undefined Type")
+                    Err(String::from("Undefined Type"))
                 }
             }
         }
@@ -204,7 +204,7 @@ fn type_parameters(
                 if types.contains_key(&typ.t){
                     res.push(tast::Type::Struct(typ.t.clone()))
                 } else {
-                    return Err(String::new() + "Undefined parameter type");
+                    return Err(String::from("Undefined parameter type"));
                 }
             },
         }
@@ -240,7 +240,7 @@ impl tast::Function {
                         vars.insert(name.t.clone(), v);
                         params_name.push(name.t);
                     } else {
-                        return Err(String::new() + "Undefined parameter type");
+                        return Err(String::from("Undefined parameter type"));
                     }
                 }
             }
@@ -278,7 +278,7 @@ impl tast::Bloc {
                 Ok(vars) => {
                     for v in vars {
                         if typed_decls.contains_key(&v.name) {
-                            return Err(String::new() + "variable redefined")
+                            return Err(String::from("variable redefined"))
                         } else {
                             typed_decls.insert(v.name.clone(), v);
                         }

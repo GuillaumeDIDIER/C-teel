@@ -34,7 +34,7 @@ impl Parser {
             tag_s!("/*")                  >>
             comment_txt: take_until_s!("*/")          >>
             tag_s!("*/")                 >>
-            (String::new() + "/*" + comment_txt + "*/")
+            (String::from("/*") + comment_txt + "*/")
         )
         | do_parse!(beg: tag_s!("//") >>
             comment_txt: take_until_s!("\n")          >>
@@ -44,7 +44,7 @@ impl Parser {
     );
 
     method!(pub space<Parser, &str, String >, mut self,
-        do_parse!(vect: many0!( alt!(call_m!(self.comment) | map!(multispace, |s: &str|{String::new() + s}))) >> ({
+        do_parse!(vect: many0!( alt!(call_m!(self.comment) | map!(multispace, |s: &str|{String::from(s)}))) >> ({
             let res = vect.concat();
             let mut v = Vec::new(); v.extend(res.split("\n"));
             self.location.line += (v.len()) - 1;
