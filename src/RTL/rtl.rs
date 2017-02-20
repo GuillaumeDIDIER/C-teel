@@ -155,17 +155,16 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             tast::ExprKind::Unary(op, box_expr) => {
                 match op {
                     tast::UnaryOp::Not => {
-                        /*if let Some(result) = result_reg {
+                        if let Some(result) = result_reg {
                             let label1 = self.label_allocator.fresh();
                             let label2 = self.label_allocator.fresh();
                             let src_register = self.register_allocator.fresh();
-                            self.instructions.insert(label1.clone(), Instruction::Const(0, result, label2.clone()));
-                            self.instructions.insert(label2.clone(), Instruction::BinaryOp(x64BinaryOp::sub, src_register, result, exit));
+                            self.instructions.insert(label1.clone(), Instruction::BinaryOp(x64BinaryOp::test, src_register, src_register, label2.clone()));
+                            self.instructions.insert(label2.clone(), Instruction::UnaryOp(x64UnaryOp::sete, result, exit));
                             self.expression(*box_expr, label1, Some(src_register))
                         } else {
                             self.expression(*box_expr, exit, None)
-                        }*/
-                        Err(String::from("Unimplemented"))
+                        }
                     },
                     tast::UnaryOp::Minus => {
                         if let Some(result) = result_reg {
