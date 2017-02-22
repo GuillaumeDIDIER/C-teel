@@ -1,12 +1,12 @@
-use RTL::ops;
+use rtl::ops;
 pub use parse::ast::Ident;
 //use std::vec;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-use RTL::register::Register;
-use RTL::label::Label;
-//use RTL::label;
+use rtl::register::Register;
+use rtl::label::Label;
+//use rtl::label;
 
 #[derive(Debug)] // Fixme !!!
 pub enum Instruction {

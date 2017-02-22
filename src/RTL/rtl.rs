@@ -1,7 +1,7 @@
-use RTL::rtltree::*;
-use RTL::label::*;
-use RTL::register::*;
-use RTL::ops::*;
+use rtl::rtltree::*;
+use rtl::label::*;
+use rtl::register::*;
+use rtl::ops::*;
 use std::iter::FromIterator;
 use typing::ast as tast;
 use std::collections::{HashMap, HashSet};
@@ -347,6 +347,17 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             let label = try!(self.expression(*b_rhs, exit, None));
             self.expression(*b_lhs, label, None)
         }
+    }
+
+    fn cnd_cmp(& mut self, op: x64Branch, b_lhs: Box<tast::Expression>, b_rhs: Box<tast::Expression>, exit_false: Label, exit_true: Label) -> Result<Label, String> {
+        let label = self.label_allocator.fresh();
+        self.instructions.insert(label.clone(), Instruction::Branch(op, exit_true, exit_false));
+        let label2 = self.label_allocator.fresh();
+        let l_reg = self.register_allocator.fresh();
+        let r_reg = self.register_allocator.fresh();
+        self.instructions.insert(label2.clone(), Instruction::BinaryOp(x64BinaryOp::cmp, r_reg, l_reg, label));
+        let label3 = try!(self.expression(*b_rhs, label2, Some(r_reg)));
+        self.expression(*b_lhs, label3, Some(l_reg))
     }
 
     fn expr_bin_and(& mut self, b_lhs: Box<tast::Expression>, b_rhs: Box<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {

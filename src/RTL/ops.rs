@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::fmt;
 
 // Opérations unaires
+#[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum x64UnaryOp {
     addi(i64),
@@ -30,6 +31,7 @@ impl Display for x64UnaryOp {
 }
 
 // Opérations binaires
+#[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum x64BinaryOp {
     mov,
@@ -52,8 +54,10 @@ impl Display for x64BinaryOp {
 }
 
 // Operations de branchement
+#[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum x64Branch {
+    #[allow(non_camel_case_types)]
     je,
     jne,
     jle,
