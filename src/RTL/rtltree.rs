@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::fmt;
 use RTL::register::Register;
 use RTL::label::Label;
-use RTL::label;
+//use RTL::label;
 
 #[derive(Debug)] // Fixme !!!
 pub enum Instruction {
@@ -37,7 +37,7 @@ impl Instruction {
                 vec![label.clone()]
             },
             &Instruction::Branch(_, ref label1, ref label2) => {
-                vec![label1.clone(), label2.clone()]
+                vec![label2.clone(), label1.clone()]
             }
         }
     }
@@ -62,10 +62,10 @@ impl Display for Instruction {
                 write!(f, "mov {} {}({}) --> {}", sreg, offset, dreg, label)
             },
             &Instruction::UnaryOp(ref op, ref reg, ref label) => {
-                write!(f, "{:?} {} --> {}", op, reg, label)
+                write!(f, "{} {} --> {}", op, reg, label)
             },
             &Instruction::BinaryOp(ref op, ref sreg, ref dreg, ref label) => {
-                write!(f, "{:?} {} {} --> {}", op, sreg, dreg, label)
+                write!(f, "{} {} {} --> {}", op, sreg, dreg, label)
             },
             &Instruction::Call(ref reg, ref name, ref args, ref label) => {
                 try!(write!(f, "{} <- call {}(", reg, name));
@@ -82,7 +82,7 @@ impl Display for Instruction {
                 write!(f, "goto {}", label)
             },
             &Instruction::Branch(ref branch_op, ref label1, ref label2) => {
-                write!(f, "{:?} --> {}, {}", branch_op, label1, label2)
+                write!(f, "{} --> {}, {}", branch_op, label1, label2)
             },
             //_ => write!(f, "{:#?}\n", self)
         }
