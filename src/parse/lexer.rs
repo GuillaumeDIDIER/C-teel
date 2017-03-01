@@ -9,23 +9,22 @@ use parse::parser::Parser;
 pub fn convert_char(ch: &str) -> Option<i64> {
     if ch.len() == 1 {
         if let Some(c) = ch.chars().next() {
-
-            return Some(c as i64);
-
+            Some(c as i64)
+        } else {
+            None
         }
-        return None;
     } else if ch.len() == 2 {
-        return match ch {
+        match ch {
             "\\\\" => Some(92),
             "\\\'" => Some(39),
             "\\\"" => Some(34),
             _ => None,
-        };
+        }
     } else if ch.len() == 4 {
-        return i64::from_str_radix(&ch[2..], 16).ok();
+        i64::from_str_radix(&ch[2..], 16).ok()
+    } else {
+        None
     }
-
-    return None;
 }
 
 impl Parser {

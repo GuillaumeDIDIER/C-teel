@@ -19,7 +19,7 @@ impl File {
 
             }
         }
-        return Ok(file);
+        Ok(file)
 
     }
 }
@@ -258,7 +258,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
 
         let res = self.expr_affect_dest(*b_lhs, exit, source_reg);
         match res {
-            Err(e) => {return Err(e);},
+            Err(e) => {Err(e)},
             Ok(label) => self.expression(*b_rhs, label, Some(source_reg))
         }
     }
@@ -473,10 +473,10 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
     }
 
 
-    fn find_var(& self, name: &String) -> Option<Register> {
+    fn find_var(& self, name: &str) -> Option<Register> {
         for scope in self.variables.iter().rev() {
             if let Some(reg) = scope.get(name) {
-                return Some(reg.clone());
+                return Some(*reg);
             }
         }
         None

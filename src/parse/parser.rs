@@ -312,6 +312,12 @@ impl Parser {
     ));
 }
 
+impl Default for Parser {
+    fn default() -> Self {
+         Self::new()
+    }
+}
+
 pub fn build_deref_tree(first: Node<Expression>, v: Vec<Node<Ident>>) -> Node<Expression> {
     let mut vm = v.clone();
     build_deref_tree_aux(first, &mut vm)

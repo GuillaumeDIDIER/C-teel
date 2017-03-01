@@ -131,7 +131,7 @@ impl Driver {
         }
         // Finish...
 
-        return 0;
+        0
     }
 }
 

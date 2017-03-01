@@ -122,7 +122,7 @@ impl tast::File {
         } else {
             return Err(String::from("Missing main entry point"));
         }
-        return Ok(file);
+        Ok(file)
     }
 }
 
@@ -209,7 +209,7 @@ fn type_parameters(
             },
         }
     }
-    return Ok(res);
+    Ok(res)
 }
 
 impl tast::Function {
