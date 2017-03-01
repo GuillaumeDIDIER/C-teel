@@ -1,5 +1,8 @@
+pub use self::tree::*;
+pub use self::builder::*;
+
 pub mod label;
 pub mod ops;
 pub mod register;
-pub mod rtltree;
-pub mod rtl;
+mod tree;
+mod builder;

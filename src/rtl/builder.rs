@@ -1,4 +1,4 @@
-use rtl::rtltree::*;
+use rtl::*;
 use rtl::label::*;
 use rtl::register::*;
 use rtl::ops::*;

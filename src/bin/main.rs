@@ -118,7 +118,7 @@ impl Driver {
             println!("{:#?}", tast);
             return 0;
         }
-        let res = rtl::rtltree::File::from_typer_ast(tast);
+        let res = rtl::File::from_typer_ast(tast);
         match res {
             Ok(f) => {
                 println!("{}", f);
