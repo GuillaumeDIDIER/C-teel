@@ -5,3 +5,4 @@ pub mod parse;
 pub mod typing;
 pub mod rtl;
 pub mod ertl;
+pub mod ltl;
