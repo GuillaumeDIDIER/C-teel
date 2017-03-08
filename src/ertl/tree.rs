@@ -4,8 +4,10 @@ pub use parse::ast::Ident;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-use rtl::register::Register;
-use rtl::label::Label;
+pub use rtl::register::Register;
+pub use rtl::label::Label;
+use rtl::label::LabelAllocator;
+use rtl::ops::*;
 
 #[derive(Debug)] // Fixme !!!
 pub enum Instruction {
@@ -109,6 +111,7 @@ impl Display for Instruction {
 
 #[derive(Debug)]
 pub struct FuncDefinition {
+    pub label_allocator: LabelAllocator,
     pub name: Ident,
     pub formals: usize,
     pub entry: Label,
