@@ -92,6 +92,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
         match stmt {
             tast::Statement::Return(expr) => {
                 let result = self.result;
+                let exit = self.exit;
                 self.expression(expr, exit, Some(result))
             },
             tast::Statement::Expr(expr) => {
