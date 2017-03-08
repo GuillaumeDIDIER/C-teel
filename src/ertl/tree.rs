@@ -23,7 +23,7 @@ pub enum Instruction {
     Goto(Label),
     AllocFrame(Label),
     DeleteFrame(Label),
-    GetParam(usize, Register, Label),
+    GetParam(usize, Register, Label), // Parameters will be indexed starting from 0 on the stack. (hence indice minus 6)
     PushParam(Register, Label),
     Return,
 }

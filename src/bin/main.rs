@@ -12,6 +12,7 @@ use std::fs::File;
 use std::process::exit;
 use std::ffi::OsString;
 use C_teel::rtl;
+use C_teel::ertl;
 //use std::boxed;
 
 enum Mode {
@@ -118,18 +119,22 @@ impl Driver {
             println!("{:#?}", tast);
             return 0;
         }
-        let res = rtl::File::from_typer_ast(tast);
-        match res {
-            Ok(f) => {
-                println!("{}", f);
-                println!("\n{:#?}", f);
-            },
+        let rtl_ast = match rtl::File::from_typer_ast(tast) {
+            Ok(f) => {println!("{}", f);f},
             Err(e) => {
                 println!("{:?}", e);
                 return 1;
             }
-        }
-        // Finish...
+        };
+        let ertl_ast = match ertl::File::from_rtl(rtl_ast) {
+            Ok(f) => f,
+            Err(e) => {
+                println!("{:?}", e);
+                return 1;
+            }
+        };
+        println!("{}", ertl_ast);
+        println!("{:?}", ertl_ast);
 
         0
     }
