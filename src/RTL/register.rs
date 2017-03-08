@@ -40,7 +40,7 @@ impl Register {
     }
 
     pub fn callee_saved() -> Vec<Register> {
-        vec![Register::Rbx, Register::R12, /*Register::R13, Register::R14, Register::R15,*/]
+        vec![Register::Rbx, Register::R12, Register::R13, Register::R14, Register::R15]
     }
 
     pub fn allocatable() -> Vec<Register> {
