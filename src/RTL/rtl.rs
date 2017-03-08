@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 impl File {
     pub fn from_typer_ast(typer_ast: tast::File) -> Result<File, String> {
         let mut file = File{globals: Vec::new(), functions: Vec::new()};
-        file.globals = Vec::from_iter(typer_ast.variables.keys().map(|s: &String|{s.clone()}));
+        file.globals = Vec::from_iter(typer_ast.variables.keys().cloned());
         for function in typer_ast.function_definitions {
             match FuncDefinition::from_typer_function(function, &typer_ast.types/*, &file.globals*/) {
                 Ok(func_def) => {file.functions.push(func_def);},
@@ -69,7 +69,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
         let mut var_registers = HashMap::new();
         for var in bloc.decls {
             var_registers.insert(var.0.clone(), self.register_allocator.fresh());
-            self.locals.insert(var_registers[&var.0].clone());
+            self.locals.insert(var_registers[&var.0]);
         }
         let mut current_exit = exit;
         self.variables.push(var_registers);
@@ -91,7 +91,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
     fn statement(& mut self, stmt: tast::Statement, exit: Label) -> Result<Label, String> {
         match stmt {
             tast::Statement::Return(expr) => {
-                let result = self.result.clone();
+                let result = self.result;
                 self.expression(expr, exit, Some(result))
             },
             tast::Statement::Expr(expr) => {
@@ -173,7 +173,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
 
     fn expr_memb_deref(& mut self, box_expr: Box<tast::Expression>, membername: String, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
         if let tast::Type::Struct(typename) = box_expr.typ.clone() {
-            let ref typ = self.types[&typename];
+            let typ = &self.types[&typename];
             let index = typ.index[&membername];
             if let Some(result) = result_reg {
                 let label = self.label_allocator.fresh();
@@ -232,7 +232,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                 },
                 tast::ExprKind::MembDeref(box_expr, membername) => {
                     if let tast::Type::Struct(typename) = box_expr.typ.clone() {
-                        let ref typ = self.types[&typename];
+                        let typ = &self.types[&typename];
                         let index = typ.index[&membername];
                         let label = self.label_allocator.fresh();
                         let adress = self.register_allocator.fresh();

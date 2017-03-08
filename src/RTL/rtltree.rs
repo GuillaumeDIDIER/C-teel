@@ -24,19 +24,19 @@ pub enum Instruction {
 
 impl Instruction {
     pub fn successors(&self) -> Vec<Label>{ // Fixme !!
-        match self {
-            &Instruction::Const(_,_, ref label)
-            | &Instruction::AccessGlobal(_, _, ref label)
-            | &Instruction::AssignGlobal(_, _, ref label)
-            | &Instruction::Load(_, _, _, ref label)
-            | &Instruction::Store(_, _, _, ref label)
-            | &Instruction::UnaryOp(_, _, ref label)
-            | &Instruction::BinaryOp(_, _, _, ref label)
-            | &Instruction::Call(_, _, _, ref label)
-            | &Instruction::Goto(ref label) => {
+        match *self {
+            Instruction::Const(_,_, ref label)
+            | Instruction::AccessGlobal(_, _, ref label)
+            | Instruction::AssignGlobal(_, _, ref label)
+            | Instruction::Load(_, _, _, ref label)
+            | Instruction::Store(_, _, _, ref label)
+            | Instruction::UnaryOp(_, _, ref label)
+            | Instruction::BinaryOp(_, _, _, ref label)
+            | Instruction::Call(_, _, _, ref label)
+            | Instruction::Goto(ref label) => {
                 vec![label.clone()]
             },
-            &Instruction::Branch(_, ref label1, ref label2) => {
+            Instruction::Branch(_, ref label1, ref label2) => {
                 vec![label2.clone(), label1.clone()]
             }
         }
@@ -45,29 +45,29 @@ impl Instruction {
 
 impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            &Instruction::Const(ref value, ref reg, ref label) => {
+        match *self {
+            Instruction::Const(ref value, ref reg, ref label) => {
                 write!(f, "mov ${} {} --> {}", value, reg, label)
             },
-            &Instruction::AccessGlobal(ref name, ref reg, ref label) => {
+            Instruction::AccessGlobal(ref name, ref reg, ref label) => {
                 write!(f, "mov {} {} --> {}", name, reg, label)
             },
-            &Instruction::AssignGlobal(ref reg, ref name, ref label) => {
+            Instruction::AssignGlobal(ref reg, ref name, ref label) => {
                 write!(f, "mov {} {} --> {}", reg, name, label)
             },
-            &Instruction::Load(ref sreg, ref offset, ref dreg, ref label) => {
+            Instruction::Load(ref sreg, ref offset, ref dreg, ref label) => {
                 write!(f, "mov {}({}) {} --> {}", offset, sreg, dreg, label)
             },
-            &Instruction::Store(ref sreg, ref dreg, ref offset, ref label) => {
+            Instruction::Store(ref sreg, ref dreg, ref offset, ref label) => {
                 write!(f, "mov {} {}({}) --> {}", sreg, offset, dreg, label)
             },
-            &Instruction::UnaryOp(ref op, ref reg, ref label) => {
+            Instruction::UnaryOp(ref op, ref reg, ref label) => {
                 write!(f, "{} {} --> {}", op, reg, label)
             },
-            &Instruction::BinaryOp(ref op, ref sreg, ref dreg, ref label) => {
+            Instruction::BinaryOp(ref op, ref sreg, ref dreg, ref label) => {
                 write!(f, "{} {} {} --> {}", op, sreg, dreg, label)
             },
-            &Instruction::Call(ref reg, ref name, ref args, ref label) => {
+            Instruction::Call(ref reg, ref name, ref args, ref label) => {
                 try!(write!(f, "{} <- call {}(", reg, name));
                 let mut i = args.iter(); // Refactor this into an auxilair function
                 if let Some(arg0) = i.next() {
@@ -78,10 +78,10 @@ impl Display for Instruction {
                 }
                 write!(f, ") --> {}", label)
             },
-            &Instruction::Goto(ref label) => {
+            Instruction::Goto(ref label) => {
                 write!(f, "goto {}", label)
             },
-            &Instruction::Branch(ref branch_op, ref label1, ref label2) => {
+            Instruction::Branch(ref branch_op, ref label1, ref label2) => {
                 write!(f, "{} --> {}, {}", branch_op, label1, label2)
             },
             //_ => write!(f, "{:#?}\n", self)
