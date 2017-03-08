@@ -494,6 +494,8 @@ impl FuncDefinition {
             entry: entry_label,
             exit: builder.exit,
             body: builder.instructions,
+            label_allocator: builder.label_allocator,
+            register_allocator: builder.register_allocator,
         }
     }
 

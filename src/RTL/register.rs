@@ -89,6 +89,7 @@ impl Display for Register {
     }
 }
 
+#[derive(Debug)]
 pub struct RegisterAllocator {
     count: i64,
 }

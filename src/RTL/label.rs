@@ -1,4 +1,4 @@
-
+#[derive(Debug)]
 pub struct LabelAllocator {
     count: i64,
 }

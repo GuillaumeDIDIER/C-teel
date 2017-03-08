@@ -6,6 +6,8 @@ use std::fmt::Display;
 use std::fmt;
 use rtl::register::Register;
 use rtl::label::Label;
+use rtl::label::LabelAllocator;
+use rtl::register::RegisterAllocator;
 //use rtl::label;
 
 #[derive(Debug)] // Fixme !!!
@@ -98,6 +100,8 @@ pub struct FuncDefinition {
     pub entry: Label,
     pub exit: Label,
     pub body: HashMap<Label, Instruction>,
+    pub label_allocator: LabelAllocator,
+    pub register_allocator: RegisterAllocator,
 }
 
 impl FuncDefinition {
