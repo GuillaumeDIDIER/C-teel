@@ -8,6 +8,8 @@ pub use rtl::register::Register;
 pub use rtl::label::Label;
 use rtl::label::LabelAllocator;
 use rtl::ops::*;
+use ertl::liveness::LivenessInfo;
+
 
 #[derive(Debug)] // Fixme !!!
 pub enum Instruction {
@@ -53,6 +55,62 @@ impl Instruction {
                 Vec::new()
             }
         }
+    }
+
+    pub fn define_use(&self) -> (Vec<Register>, Vec<Register>) {
+        match self {
+            &Instruction::Const(_, register, _)
+            | &Instruction::AccessGlobal(_, register, _)
+            | &Instruction::GetParam(_, register, _) => {
+                (vec![register], vec![])
+            },
+            &Instruction::AssignGlobal(register, _, _)
+            | &Instruction::PushParam(register, _)  => {
+                (vec![], vec![register])
+            },
+            &Instruction::UnaryOp(_, register_dest, _) =>{
+                (vec![register_dest], vec![register_dest])
+            },
+            &Instruction::BinaryOp(x64BinaryOp::mov, register_source, register_dest, _)
+            | &Instruction::Load(register_source, _, register_dest, _) => {
+                (vec![register_dest], vec![register_source])
+            },
+            &Instruction::BinaryOp(x64BinaryOp::test, register1, register2, _)
+            | &Instruction::BinaryOp(x64BinaryOp::cmp, register1, register2, _) => {
+                (vec![], vec![register1, register2])
+            },
+            &Instruction::BinaryOp(x64BinaryOp::div, register1, register2, _) => {
+                assert!(register2 == Register::Rax);
+                (vec![Register::Rax, Register::Rdx], vec![Register::Rax, register1])
+            },
+            &Instruction::BinaryOp(_, register1, register2, _) => {
+                (vec![register2], vec![register1, register2])
+            },
+            &Instruction::Store(register1, register2, _, _) => {
+                (vec![], vec![register1, register2])
+            },
+            &Instruction::Call(_, n, _) => {
+                let mut v = Vec::new();
+                let p = Register::parameters();
+                for i in 0..n {
+                    v.push(p[i]);
+                }
+                (Register::caller_saved(),v)
+            }
+            &Instruction::Branch(_, _ , _)
+            | &Instruction::Goto(_)
+            | &Instruction::AllocFrame(_)
+            | &Instruction::DeleteFrame(_) => {
+                (vec![],vec![])
+            }
+
+            &Instruction::Return => {
+                let mut v = vec![Register::Rax];
+                v.append(& mut Register::callee_saved());
+                (vec![],v)
+            }
+        }
+
     }
 }
 
@@ -116,6 +174,7 @@ pub struct FuncDefinition {
     pub formals: usize,
     pub entry: Label,
     pub body: HashMap<Label, Instruction>,
+    pub liveness : HashMap<Label, LivenessInfo>,
 }
 
 impl FuncDefinition {

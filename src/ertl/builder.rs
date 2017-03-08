@@ -100,12 +100,14 @@ impl FuncDefinitionBuilder {
         let ret = self.label_allocator.fresh();
         self.new_body.insert(new_exit, Instruction::DeleteFrame(ret));
         self.new_body.insert(ret, Instruction::Return);
+        let liveness = LivenessInfo::compute(&self.new_body);
         Ok(FuncDefinition{
             label_allocator: self.label_allocator,
             name: self.name,
             formals: self.formals.len(),
             entry: new_entry,
             body: self.new_body,
+            liveness: liveness,
         })
     }
 
