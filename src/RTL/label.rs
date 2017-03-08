@@ -3,14 +3,15 @@ pub struct LabelAllocator {
     count: i64,
 }
 
-pub type Label = String;
+pub type Label = i64;
+
 
 impl<'a> LabelAllocator {
     pub fn new() -> Self {
         LabelAllocator{count: 0}
     }
     pub fn fresh(& mut self) -> Label {
-        let res: String = format!("L{}", self.count);
+        let res : Label = self.count;//format!("L{}", self.count);
         self.count += 1;
         res
     }
