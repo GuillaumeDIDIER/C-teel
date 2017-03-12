@@ -188,8 +188,8 @@ impl FuncDefinition {
             return Ok(());
         }
         visited.insert(l.clone());
-        if let Some(instruction) = self.body.get(&l) {
-            try!(write!(f, "  {}: {}\n", l, instruction));
+        if let (Some(instruction),Some(live_info)) = (self.body.get(&l),self.liveness.get(&l)) {
+            try!(write!(f, "  {}: {} {:?}\n", l, instruction, live_info));
             for s in instruction.successors() {
                 try!(self.visit(visited, s, f));
             }
