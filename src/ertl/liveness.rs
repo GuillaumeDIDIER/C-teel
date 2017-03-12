@@ -1,5 +1,5 @@
 use ertl::Label;
-use ertl::Register;
+use common::register::Register;
 use ertl::Instruction;
 use std::collections::{HashMap, HashSet};
 

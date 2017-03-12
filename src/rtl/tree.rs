@@ -4,10 +4,10 @@ pub use parse::ast::Ident;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-use rtl::register::Register;
+use common::register::Register;
 use rtl::label::Label;
 use rtl::label::LabelAllocator;
-use rtl::register::RegisterAllocator;
+use common::register::RegisterAllocator;
 //use rtl::label;
 
 #[derive(Debug)] // Fixme !!!

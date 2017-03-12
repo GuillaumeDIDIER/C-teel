@@ -4,7 +4,7 @@ use rtl::label::LabelAllocator;
 use rtl::ops::*;
 use std::collections::HashMap;
 use ertl::liveness::LivenessInfo;
-use rtl::register::RegisterAllocator;
+use common::register::RegisterAllocator;
 
 impl File {
     pub fn from_rtl(rtl_file: rtl::File) -> Result<File, String> {

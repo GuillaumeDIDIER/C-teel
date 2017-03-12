@@ -4,7 +4,7 @@ pub use parse::ast::Ident;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-pub use rtl::register::Register;
+pub use common::register::Register;
 pub use rtl::label::Label;
 use rtl::label::LabelAllocator;
 use rtl::ops::*;

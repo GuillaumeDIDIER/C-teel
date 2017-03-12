@@ -4,8 +4,8 @@ pub use parse::ast::Ident;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-use rtl::register::Register;
 use rtl::label::Label;
+pub use common::register::Register;
 
 #[derive(Debug)]
 pub enum Operand {

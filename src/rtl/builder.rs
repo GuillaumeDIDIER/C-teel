@@ -1,6 +1,6 @@
 use rtl::*;
 use rtl::label::*;
-use rtl::register::*;
+use common::register::*;
 use rtl::ops::*;
 use std::iter::FromIterator;
 use typing::ast as tast;
