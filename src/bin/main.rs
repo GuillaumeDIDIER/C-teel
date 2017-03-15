@@ -126,13 +126,7 @@ impl Driver {
                 return 1;
             }
         };
-        let ertl_ast = match ertl::File::from_rtl(rtl_ast) {
-            Ok(f) => f,
-            Err(e) => {
-                println!("{:?}", e);
-                return 1;
-            }
-        };
+        let ertl_ast = ertl::File::from_rtl(rtl_ast);
         println!("{}", ertl_ast);
         println!("{:?}", ertl_ast);
 

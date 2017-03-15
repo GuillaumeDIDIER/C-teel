@@ -7,26 +7,22 @@ use ertl::liveness::LivenessInfo;
 use common::register::RegisterAllocator;
 
 impl File {
-    pub fn from_rtl(rtl_file: rtl::File) -> Result<File, String> {
-        match rtl_file.functions.into_iter().map(
+    pub fn from_rtl(rtl_file: rtl::File) -> File { // Is there a possibilty of error ?
+        let functions = rtl_file.functions.into_iter().map(
             |rtl_func: rtl::FuncDefinition| {
                 FuncDefinition::from_rtl(rtl_func)
             }
-        ).collect::<Result<Vec<_>,_>>() {
-            Ok(functions) => {
-                Ok(File{
-                    globals: rtl_file.globals,
-                    functions: functions,
-                })
-            },
-            Err(e) => Err(e)
+        ).collect::<Vec<_>>();
+        File{
+            globals: rtl_file.globals,
+            functions: functions,
         }
     }
 }
 
 
 impl FuncDefinition {
-    pub fn from_rtl(rtl_func: rtl::FuncDefinition) -> Result<FuncDefinition, String> {
+    pub fn from_rtl(rtl_func: rtl::FuncDefinition) -> FuncDefinition {
         let (builder, oldbody) = FuncDefinitionBuilder::new(rtl_func);
         builder.build(oldbody)
     }
@@ -57,9 +53,9 @@ impl FuncDefinitionBuilder {
         }, rtl_func.body)
     }
 
-    fn build(mut self, old_body: HashMap<Label, rtl::Instruction>) -> Result<FuncDefinition, String> {
+    fn build(mut self, old_body: HashMap<Label, rtl::Instruction>) -> FuncDefinition {
         for (entry, instr) in old_body {
-            try!(self.instruction(entry, instr));
+            self.instruction(entry, instr);
         }
 
         // Beginning of the function.
@@ -101,54 +97,46 @@ impl FuncDefinitionBuilder {
         self.new_body.insert(new_exit, Instruction::DeleteFrame(ret));
         self.new_body.insert(ret, Instruction::Return);
         let liveness = LivenessInfo::compute(&self.new_body);
-        Ok(FuncDefinition{
+        FuncDefinition{
             label_allocator: self.label_allocator,
             name: self.name,
             formals: self.formals.len(),
             entry: new_entry,
             body: self.new_body,
             liveness: liveness,
-        })
+        }
     }
 
-    fn instruction(& mut self, entry: Label, rtl_instrution: rtl::Instruction) -> Result<(),String> {
+    fn instruction(& mut self, entry: Label, rtl_instrution: rtl::Instruction) {
         match rtl_instrution {
             rtl::Instruction::Const(val, reg, next) => {
                 self.new_body.insert(entry, Instruction::Const(val, reg, next));
-                Ok(())
             },
             rtl::Instruction::AccessGlobal(name, dest, next) => {
                 self.new_body.insert(entry, Instruction::AccessGlobal(name, dest, next));
-                Ok(())
             },
             rtl::Instruction::AssignGlobal(src, name, next) => {
                 self.new_body.insert(entry, Instruction::AssignGlobal(src, name, next));
-                Ok(())
             },
             rtl::Instruction::Load(addr, offset, dest, next) => {
                 self.new_body.insert(entry, Instruction::Load(addr, offset, dest, next));
-                Ok(())
             },
             rtl::Instruction::Store(src, addr, offset, next) => {
                 self.new_body.insert(entry, Instruction::Store(src, addr, offset, next));
-                Ok(())
             },
             rtl::Instruction::UnaryOp(op, reg, next) => {
                 self.new_body.insert(entry, Instruction::UnaryOp(op, reg, next));
-                Ok(())
             },
             rtl::Instruction::BinaryOp(op, reg1, reg2, next) => {
                 self.new_body.insert(entry, Instruction::BinaryOp(op, reg1, reg2, next));
-                Ok(())
             },
             rtl::Instruction::Branch(op, label1, next) => {
                 self.new_body.insert(entry, Instruction::Branch(op, label1, next));
-                Ok(())
             },
             rtl::Instruction::Call(result, name, params, next) => {
                 let mut entry = entry;
                 for i in 0..params.len(){
-                    entry = try!(self.add_parameter(i, params[i], entry))
+                    entry = self.add_parameter(i, params[i], entry)
                 }
                 let tmp = self.label_allocator.fresh();
                 self.new_body.insert(entry, Instruction::Call(name, params.len(), tmp));
@@ -169,13 +157,14 @@ impl FuncDefinitionBuilder {
                     tmp,
                     Instruction::BinaryOp(x64BinaryOp::mov, Register::Rax, result, next)
                 );
-                Ok(())
-            }
-            _ => Err(String::from("Unimplemented"))
+            },
+            rtl::Instruction::Goto(label) => {
+                self.new_body.insert(entry, Instruction::Goto(label));
+            },
         }
     }
 
-    fn add_parameter(& mut self, index: usize, source: Register, entry: Label) -> Result<Label /*exit*/, String> {
+    fn add_parameter(& mut self, index: usize, source: Register, entry: Label) -> Label /*exit*/ {
         let label = self.label_allocator.fresh();
         self.new_body.insert(entry, match index {
             0 => Instruction::BinaryOp(x64BinaryOp::mov, source, Register::Rdi, label),
@@ -186,6 +175,6 @@ impl FuncDefinitionBuilder {
             5 => Instruction::BinaryOp(x64BinaryOp::mov, source, Register::R9, label), // R9
             _ => Instruction::PushParam(source, label), // Stack
         });
-        Ok(label)
+        label
     }
 }
