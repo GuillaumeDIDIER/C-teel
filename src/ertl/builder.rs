@@ -9,7 +9,7 @@ use common::register::{Register, RegisterAllocator};
 /*
     The interesting methods and structires are here.
 
-    The FunctionDefinitionBuilder data structur conatins teh temporary dat needed while doing the transformation.
+    The FunctionDefinitionBuilder data structure conatins teh temporary dat needed while doing the transformation.
 */
 
 impl File {

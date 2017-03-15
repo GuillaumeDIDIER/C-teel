@@ -99,7 +99,7 @@ impl FunctionOutput {
                 },
                 ltl::Instruction::BinaryOp(x64BinaryOp::div, sreg, dreg, next) => {
                     assert_eq!(dreg, ltl::Operand::Reg(Register::Rax), "division destination should be %rax");
-                    self.instructions.push((Some(label), format!("    cqto\n    {} {}", x64BinaryOp::div, sreg)));
+                    self.instructions.push((Some(label), format!("    cqto\n    {} {}", x64BinaryOp::div, sreg))); // cqto is used to sign extend the source register.
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::BinaryOp(op, sreg, dreg, next) => {

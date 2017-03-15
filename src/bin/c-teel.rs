@@ -145,18 +145,9 @@ impl Driver {
             return 0;
         }
 
+
         // Code generation
-
-        // This pass should not error out
-        let rtl_ast = match rtl::File::from_typer_ast(tast) {
-            Ok(f) => {f},
-            Err(e) => {
-                println!("{}", e);
-                return 1;
-            }
-        };
-
-        // the other passes do not error out, but panic should insane condition occur.
+        let rtl_ast = rtl::File::from_typer_ast(tast);
         let ertl_ast = ertl::File::from_rtl(rtl_ast);
         let ltl_ast = ltl::File::from_ertl(ertl_ast);
         let output = output::Output::from_ltl(ltl_ast); // This is a vector of (Label, String). The final logic is dieffered in the implementation of the Display::fmt trait.

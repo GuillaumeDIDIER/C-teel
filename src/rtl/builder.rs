@@ -9,17 +9,14 @@ use std::collections::{HashMap, HashSet};
 //use std::ops::Deref;
 
 impl File {
-    pub fn from_typer_ast(typer_ast: tast::File) -> Result<File, String> {
+    pub fn from_typer_ast(typer_ast: tast::File) -> File {
         let mut file = File{globals: Vec::new(), functions: Vec::new()};
         file.globals = Vec::from_iter(typer_ast.variables.keys().cloned());
         for function in typer_ast.function_definitions {
-            match FuncDefinition::from_typer_function(function, &typer_ast.types/*, &file.globals*/) {
-                Ok(func_def) => {file.functions.push(func_def);},
-                Err(e) => {return Err(e);},
-
-            }
+            let func_def = FuncDefinition::from_typer_function(function, &typer_ast.types/*, &file.globals*/);
+            file.functions.push(func_def);
         }
-        Ok(file)
+        file
 
     }
 }
@@ -65,7 +62,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
 
     }
 
-    fn bloc(& mut self, bloc: tast::Bloc, exit: Label) -> Result<Label, String> {
+    fn bloc(& mut self, bloc: tast::Bloc, exit: Label) -> Label {
         let mut var_registers = HashMap::new();
         for var in bloc.decls {
             var_registers.insert(var.0.clone(), self.register_allocator.fresh());
@@ -76,19 +73,13 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
         let mut stmts = bloc.stmts;
         stmts.reverse();
         for stmt in stmts {
-            match self.statement(stmt, current_exit) {
-                Ok(new_exit) => {
-                    current_exit = new_exit;
-                },
-                Err(e) => {return Err(e);},
-            }
+            current_exit = self.statement(stmt, current_exit);
         }
-        let res = Ok(current_exit);
         self.variables.pop();
-        res
+        current_exit
     }
 
-    fn statement(& mut self, stmt: tast::Statement, exit: Label) -> Result<Label, String> {
+    fn statement(& mut self, stmt: tast::Statement, exit: Label) -> Label {
         match stmt {
             tast::Statement::Return(expr) => {
                 let result = self.result;
@@ -101,9 +92,9 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             tast::Statement::Bloc(blk) => {
                 self.bloc(blk, exit)
             },
-            tast::Statement::Noop => {Ok(exit)},
+            tast::Statement::Noop => exit,
             tast::Statement::If(condition, box_stmt) => {
-                let label = try!(self.statement(*box_stmt, exit.clone()));
+                let label = self.statement(*box_stmt, exit.clone());
                 // Naïve implementation !
                 let label2 = self.label_allocator.fresh();
                 let cnd_reg = self.register_allocator.fresh();
@@ -113,8 +104,8 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                 self.expression(condition, label3, Some(cnd_reg))
             },
             tast::Statement::IfElse(condition, box_stmt_if, box_stmt_else) => {
-                let label_else = try!(self.statement(*box_stmt_else, exit.clone()));
-                let label_if = try!(self.statement(*box_stmt_if, exit.clone()));
+                let label_else = self.statement(*box_stmt_else, exit.clone());
+                let label_if = self.statement(*box_stmt_if, exit.clone());
                 // Naïve implementation !
                 let label2 = self.label_allocator.fresh();
                 let cnd_reg = self.register_allocator.fresh();
@@ -127,27 +118,27 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                 let label3 = self.label_allocator.fresh();
                 let label2 = self.label_allocator.fresh();
                 let cnd_reg = self.register_allocator.fresh();
-                let loop_begin = try!(self.expression(condition, label3.clone(), Some(cnd_reg)));
-                let label_loop_body = try!(self.statement(*box_stmt, loop_begin.clone()));
+                let loop_begin = self.expression(condition, label3, Some(cnd_reg));
+                let label_loop_body = self.statement(*box_stmt, loop_begin);
                 self.instructions.insert(label2, Instruction::Branch(x64Branch::je, exit, label_loop_body));
                 self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-                Ok(loop_begin)
+                loop_begin
             },
             //_ => Err(String::from("Unimplemented")),
         }
     }
 
-    fn expr_const(& mut self, ivalue: i64, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_const(& mut self, ivalue: i64, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label = self.label_allocator.fresh();
             self.instructions.insert(label, Instruction::Const(ivalue, result, exit));
-            Ok(label)
+            label
         } else {
-            Ok(exit) // Noop !
+            exit // Noop !
         }
     }
 
-    fn expr_lvalue(& mut self, name: String, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_lvalue(& mut self, name: String, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label = self.label_allocator.fresh();
             if let Some(src_register) = self.find_var(&name) {
@@ -155,24 +146,24 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             } else { // Global Variable
                 self.instructions.insert(label, Instruction::AccessGlobal(name, result, exit));
             }
-            Ok(label)
+            label
         } else {
-            Ok(exit) // Noop !
+            exit // Noop !
         }
     }
 
-    fn expr_sizeof(& mut self, typename: String, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_sizeof(& mut self, typename: String, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label = self.label_allocator.fresh();
             let ivalue = self.types[&typename].size();
             self.instructions.insert(label, Instruction::Const(ivalue, result, exit));
-            Ok(label)
+            label
         } else {
-            Ok(exit) // Noop !
+            exit // Noop !
         }
     }
 
-    fn expr_memb_deref(& mut self, expr: tast::Expression, membername: String, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_memb_deref(& mut self, expr: tast::Expression, membername: String, exit: Label, result_reg: Option<Register>) -> Label {
         if let tast::Type::Struct(typename) = expr.typ.clone() {
             let typ = &self.types[&typename];
             let index = typ.index[&membername];
@@ -189,7 +180,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
         }
     }
 
-    fn expr_unary(& mut self, op: tast::UnaryOp, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_unary(& mut self, op: tast::UnaryOp, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         match op {
             tast::UnaryOp::Not => {
                 if let Some(result) = result_reg {
@@ -219,7 +210,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
     }
 
     // This function is used for lvalue used as destination of affectation.
-    fn expr_affect_dest(& mut self, expr: tast::Expression, exit: Label, source_reg: Register) -> Result<Label, String> {
+    fn expr_affect_dest(& mut self, expr: tast::Expression, exit: Label, source_reg: Register) -> Label {
         if expr.kind.lvalue() {
             match expr.kind {
                 tast::ExprKind::Lvalue(name) => {
@@ -229,7 +220,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                     } else { // Global Variable
                         self.instructions.insert(label, Instruction::AssignGlobal(source_reg, name, exit));
                     }
-                    Ok(label)
+                    label
                 },
                 tast::ExprKind::MembDeref(box_expr, membername) => {
                     if let tast::Type::Struct(typename) = box_expr.typ.clone() {
@@ -243,28 +234,26 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                         panic!("Dereferencing of non struct type, typer failed.");
                     }
                 },
-                _ => {Err(String::from("Unkown lvalue type for affectation"))}, // Unreachable in theory.
+                _ => {panic!("Unkown lvalue type for affectation")}, // Unreachable in theory.
             }
         } else {
-            Err(String::from("Affectation to non lvalue : typer failed"))
+            panic!("Unkown lvalue type for affectation")
         }
     }
 
-    fn expr_bin_affect(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_affect(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         let source_reg = if let Some(result) = result_reg {
             result
         } else {
             self.register_allocator.fresh()
         };
 
-        let res = self.expr_affect_dest(lhs, exit, source_reg);
-        match res {
-            Err(e) => {Err(e)},
-            Ok(label) => self.expression(rhs, label, Some(source_reg))
-        }
+        let label = self.expr_affect_dest(lhs, exit, source_reg);
+        self.expression(rhs, label, Some(source_reg))
+
     }
 
-    fn expr_bin_plus_const(& mut self, ivalue: i64, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_plus_const(& mut self, ivalue: i64, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label1 = self.label_allocator.fresh();
             self.instructions.insert(label1, Instruction::UnaryOp(x64UnaryOp::addi(ivalue), result, exit));
@@ -275,7 +264,7 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
 
     }
 
-    fn expr_bin_plus(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_plus(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         match (&lhs.kind, &rhs.kind) {
             (&tast::ExprKind::Const(ivalue), _) => {self.expr_bin_plus_const(ivalue, rhs, exit, result_reg)},
             (_, &tast::ExprKind::Const(ivalue)) => {self.expr_bin_plus_const(ivalue, lhs, exit, result_reg)},
@@ -283,58 +272,59 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
                 if let Some(result) = result_reg {
                     let label2 = self.label_allocator.fresh();
                     let src_register =  self.register_allocator.fresh();
-                    let label1 = try!(self.expression(rhs, label2, Some(src_register)));
+                    let label1 = self.expression(rhs, label2, Some(src_register));
                     self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::add, src_register, result, exit));
                     self.expression(lhs, label1, Some(result))
                 } else {
-                    let label = try!(self.expression(lhs, exit, None));
+                    let label = self.expression(lhs, exit, None);
                     self.expression(rhs, label, None)
                 }
             },
         }
     }
 
-    fn expr_bin_mult(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_mult(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label2 = self.label_allocator.fresh();
             let src_register =  self.register_allocator.fresh();
-            let label1 = try!(self.expression(rhs, label2.clone(), Some(src_register)));
+            let label1 = self.expression(rhs, label2.clone(), Some(src_register));
             self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::mul, src_register, result, exit));
             self.expression(lhs, label1, Some(result))
         } else {
-            let label = try!(self.expression(lhs, exit, None));
+            let label = self.expression(lhs, exit, None);
             self.expression(rhs, label, None)
         }
     }
 
-    fn expr_bin_minus(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_minus(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label2 = self.label_allocator.fresh();
             let src_register =  self.register_allocator.fresh();
-            let label1 = try!(self.expression(rhs, label2, Some(src_register)));
+            let label1 = self.expression(rhs, label2, Some(src_register));
             self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::sub, src_register, result, exit));
             self.expression(lhs, label1, Some(result))
         } else {
-            let label = try!(self.expression(lhs, exit, None));
+            let label = self.expression(lhs, exit, None);
             self.expression(rhs, label, None)
         }
     }
 
-    fn expr_bin_div(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_div(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label2 = self.label_allocator.fresh();
             let src_register =  self.register_allocator.fresh();
-            let label1 = try!(self.expression(rhs, label2, Some(src_register)));
+            let label1 = self.expression(rhs, label2, Some(src_register));
             self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::div, src_register, result, exit));
             self.expression(lhs, label1, Some(result))
         } else {
-            let label = try!(self.expression(lhs, exit, None));
+            let label = self.expression(lhs, exit, None);
             self.expression(rhs, label, None)
         }
     }
 
 
-    fn expr_bin_cmp(& mut self, op: x64UnaryOp, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+
+    fn expr_bin_cmp(& mut self, op: x64UnaryOp, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         if let Some(result) = result_reg {
             let label = self.label_allocator.fresh();
             self.instructions.insert(label, Instruction::UnaryOp(op, result, exit));
@@ -342,26 +332,26 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             let l_reg = self.register_allocator.fresh();
             let r_reg = self.register_allocator.fresh();
             self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::cmp, r_reg, l_reg, label));
-            let label3 = try!(self.expression(rhs, label2, Some(r_reg)));
+            let label3 = self.expression(rhs, label2, Some(r_reg));
             self.expression(lhs, label3, Some(l_reg))
         } else {
-            let label = try!(self.expression(rhs, exit, None));
+            let label = self.expression(rhs, exit, None);
             self.expression(lhs, label, None)
         }
     }
 
-    fn cnd_cmp(& mut self, op: x64Branch, lhs: tast::Expression, rhs: tast::Expression, exit_false: Label, exit_true: Label) -> Result<Label, String> {
+    fn cnd_cmp(& mut self, op: x64Branch, lhs: tast::Expression, rhs: tast::Expression, exit_false: Label, exit_true: Label) -> Label {
         let label = self.label_allocator.fresh();
         self.instructions.insert(label, Instruction::Branch(op, exit_true, exit_false));
         let label2 = self.label_allocator.fresh();
         let l_reg = self.register_allocator.fresh();
         let r_reg = self.register_allocator.fresh();
         self.instructions.insert(label2, Instruction::BinaryOp(x64BinaryOp::cmp, r_reg, l_reg, label));
-        let label3 = try!(self.expression(rhs, label2, Some(r_reg)));
+        let label3 = self.expression(rhs, label2, Some(r_reg));
         self.expression(lhs, label3, Some(l_reg))
     }
 
-    fn expr_bin_and(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_and(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         let (result, label) = if let Some(result) = result_reg {
             let cnd_reg = self.register_allocator.fresh();
             let label1 = self.label_allocator.fresh();
@@ -370,26 +360,26 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             self.instructions.insert(label1, Instruction::Const(1, result, exit));
             self.instructions.insert(label2, Instruction::Branch(x64Branch::je, exit, label1));
             self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-            (Some(result), try!(self.expression(rhs, label3, Some(cnd_reg))))
+            (Some(result), self.expression(rhs, label3, Some(cnd_reg)))
         } else {
-            (None, try!(self.expression(rhs, exit.clone(), None)))
+            (None, self.expression(rhs, exit.clone(), None))
         };
         let cnd_reg = self.register_allocator.fresh();
         let label2 = self.label_allocator.fresh();
         let label3 = self.label_allocator.fresh();
         self.instructions.insert(label2, Instruction::Branch(x64Branch::je, exit, label));
         self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-        let label4 = try!(self.expression(lhs, label3, Some(cnd_reg)));
+        let label4 = self.expression(lhs, label3, Some(cnd_reg));
         if let Some(result) = result {
             let label5 = self.label_allocator.fresh();
             self.instructions.insert(label5, Instruction::Const(0, result, label4));
-            Ok(label5)
+            label5
         } else {
-            Ok(label4)
+            label4
         }
     }
 
-    fn expr_bin_or(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_bin_or(& mut self, lhs: tast::Expression, rhs: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         let (result, label) = if let Some(result) = result_reg {
             let cnd_reg = self.register_allocator.fresh();
             let label1 = self.label_allocator.fresh();
@@ -398,26 +388,26 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
             self.instructions.insert(label1, Instruction::Const(0, result, exit));
             self.instructions.insert(label2, Instruction::Branch(x64Branch::jne, exit, label1));
             self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-            (Some(result), try!(self.expression(rhs, label3, Some(cnd_reg))))
+            (Some(result), self.expression(rhs, label3, Some(cnd_reg)))
         } else {
-            (None, try!(self.expression(rhs, exit.clone(), None)))
+            (None, self.expression(rhs, exit.clone(), None))
         };
         let cnd_reg = self.register_allocator.fresh();
         let label2 = self.label_allocator.fresh();
         let label3 = self.label_allocator.fresh();
         self.instructions.insert(label2, Instruction::Branch(x64Branch::jne, exit, label));
         self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-        let label4 = try!(self.expression(lhs, label3, Some(cnd_reg)));
+        let label4 = self.expression(lhs, label3, Some(cnd_reg));
         if let Some(result) = result {
             let label5 = self.label_allocator.fresh();
             self.instructions.insert(label5, Instruction::Const(1, result, label4));
-            Ok(label5)
+            label5
         } else {
-            Ok(label4)
+            label4
         }
     }
 
-    fn expr_call(& mut self, name: String, parameters: Vec<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expr_call(& mut self, name: String, parameters: Vec<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Label {
         let result = if let Some(result) = result_reg {
             result
         } else {
@@ -430,12 +420,12 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
         }
         self.instructions.insert(label, Instruction::Call(result, name, registers.clone(), exit));
         for (reg, parameter) in registers.into_iter().zip(parameters).rev() {
-            label = try!(self.expression(parameter, label, Some(reg)));
+            label = self.expression(parameter, label, Some(reg));
         }
-        Ok(label)
+        label
     }
 
-    fn expression(& mut self, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
+    fn expression(& mut self, expr: tast::Expression, exit: Label, result_reg: Option<Register>) -> Label {
         match expr.kind {
             tast::ExprKind::Const(ivalue) => {
                 self.expr_const(ivalue, exit, result_reg)
@@ -527,16 +517,12 @@ impl FuncDefinition {
         }
     }
 
-    pub fn from_typer_function(function: tast::Function, types: &HashMap<String, tast::Struct>, /*globals: &Vec<Ident>*//* Not needed, can infer that a variable is global*/) -> Result<FuncDefinition, String> {
+    pub fn from_typer_function(function: tast::Function, types: &HashMap<String, tast::Struct>, /*globals: &Vec<Ident>*//* Not needed, can infer that a variable is global*/) -> FuncDefinition {
         let mut builder = FuncDefinitionBuilder::new(&function, types);
         let exit = builder.exit;
-        match builder.bloc(function.blk, exit) {
-            Err(e) => Err(e),
-            Ok(entry_label) => {
-                let entry = builder.label_allocator.fresh();
-                builder.instructions.insert(entry, Instruction::Const(0, builder.result, entry_label));
-                Ok(FuncDefinition::new(builder, function.name, entry))
-            },
-        }
+        let entry_label = builder.bloc(function.blk, exit);
+        let entry = builder.label_allocator.fresh();
+        builder.instructions.insert(entry, Instruction::Const(0, builder.result, entry_label));
+        FuncDefinition::new(builder, function.name, entry_label)
     }
 }
