@@ -2,6 +2,9 @@ extern crate C_teel;
 extern crate nom;
 extern crate clap;
 
+use std::path::Path;
+
+
 use C_teel::parse;
 use C_teel::typing;
 //use C_teel::parse::ast;
@@ -14,6 +17,7 @@ use std::ffi::OsString;
 use C_teel::rtl;
 use C_teel::ertl;
 use C_teel::ltl;
+use C_teel::output;
 //use std::boxed;
 
 enum Mode {
@@ -84,7 +88,7 @@ impl Driver {
 
     fn run(self) -> i32 {
         // Open file
-        let src = match File::open(self.filename) {
+        let src = match File::open(&self.filename) {
             Ok(mut f) => {
                 let mut s = String::new();
                 if f.read_to_string(&mut s).is_err(){
@@ -132,6 +136,15 @@ impl Driver {
         //println!("{:?}", ertl_ast);
         let ltl_ast = ltl::File::from_ertl(ertl_ast);
         println!("{}", ltl_ast);
+        let output = output::Output::from_ltl(ltl_ast);
+        println!("{}", output);
+        let path = Path::new(&self.filename).with_extension("s");
+        let mut outputfile = File::create(path);
+        match outputfile {
+            Ok(mut f) => {write!(f, "{}", output);}
+            _ => {}
+        }
+        
 
         0
     }
