@@ -34,7 +34,8 @@ impl Register {
     pub fn caller_saved() -> Vec<Register> {
         let mut v = Vec::new();
         v.push(Register::result());
-        v.push(Register::R10);
+        //v.push(Register::R10);
+        //v.push(Register::R11);
         v.append(& mut Register::parameters());
         v
     }
@@ -50,7 +51,7 @@ impl Register {
     }
 
     pub fn tmp() -> (Register, Register) {
-        (Register::Rbp, Register::R11)
+        (Register::R10, Register::R11)
     }
 
     pub fn is_pseudo(&self) -> bool {
