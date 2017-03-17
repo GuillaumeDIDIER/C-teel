@@ -21,7 +21,7 @@ impl Display for x64UnaryOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             &x64UnaryOp::addi(ival) => {
-                write!(f, "add ${}", ival)
+                write!(f, "addq ${}, ", ival)
             },
             _ => {
                 write!(f, "{:?}", self)
@@ -45,10 +45,28 @@ pub enum x64BinaryOp {
 
 impl Display for x64BinaryOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            _ => {
-                write!(f, "{:?}", self)
-            }
+        match *self {
+            x64BinaryOp::mov => {
+                write!(f, "movq")
+            },
+            x64BinaryOp::add => {
+                write!(f, "addq")
+            },
+            x64BinaryOp::sub => {
+                write!(f, "subq")
+            },
+            x64BinaryOp::mul => {
+                write!(f, "imulq")
+            },
+            x64BinaryOp::div => {
+                write!(f, "idivq")
+            },
+            x64BinaryOp::cmp => {
+                write!(f, "cmpq")
+            },
+            x64BinaryOp::test => {
+                write!(f, "testq")
+            },
         }
     }
 }
