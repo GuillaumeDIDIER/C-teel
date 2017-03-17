@@ -81,7 +81,7 @@ impl Instruction {
             },
             Instruction::BinaryOp(x64BinaryOp::div, register1, register2, _) => {
                 assert!(register2 == Register::Rax);
-                (vec![Register::Rax, Register::Rdx], vec![Register::Rax, register1])
+                (vec![Register::Rax, Register::Rdx], vec![Register::Rax, Register::Rdx, register1])
             },
             Instruction::BinaryOp(_, register1, register2, _) => {
                 (vec![register2], vec![register1, register2])
