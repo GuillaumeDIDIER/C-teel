@@ -7,7 +7,7 @@ use std::fmt;
 pub use common::register::Register;
 pub use rtl::label::Label;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operand {
     Reg(Register),
     Spilled(usize),
@@ -38,8 +38,8 @@ pub enum Instruction {
     Branch(ops::x64Branch, Label, Label),
     Call(Ident, Label),
     Goto(Label),
-    AllocFrame(Label),
-    DeleteFrame(Label),
+    Enter(usize, Label), // Use the usual x86_64 conventions (r10 an r11 as temporaries), rbp as base pointer.
+    Leave(Label),
     GetParam(usize, Register, Label),
     PushParam(Operand, Label),
     Return,
@@ -57,8 +57,8 @@ impl Instruction {
             | Instruction::BinaryOp(_, _, _, ref label)
             | Instruction::Call(_, ref label)
             | Instruction::Goto(ref label)
-            | Instruction::AllocFrame(ref label)
-            | Instruction::DeleteFrame(ref label)
+            | Instruction::Enter(_, ref label)
+            | Instruction::Leave(ref label)
             | Instruction::GetParam(_, _, ref label)
             | Instruction::PushParam(_, ref label)  => {
                 vec![label.clone()]
@@ -106,11 +106,11 @@ impl Display for Instruction {
             Instruction::Branch(ref branch_op, ref label1, ref label2) => {
                 write!(f, "{} --> {}, {}", branch_op, label1, label2)
             },
-            Instruction::AllocFrame(ref label) => {
-                write!(f, "alloc_frame --> {}", label)
+            Instruction::Enter(size, ref label) => {
+                write!(f, "enter ${} --> {}", size, label)
             },
-            Instruction::DeleteFrame(ref label) => {
-                write!(f, "delete_frame --> {}", label)
+            Instruction::Leave(ref label) => {
+                write!(f, "leave --> {}", label)
             },
             Instruction::GetParam(ref index, ref dest, ref label) => {
                 write!(f, "mov stackp({}) {} --> {}", index, dest, label)
@@ -136,7 +136,7 @@ pub struct FuncDefinition {
 impl FuncDefinition {
     fn print_body(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut visited = HashSet::<Label>::new();
-        self.visit(&mut visited, self.entry.clone(), f)
+        self.visit(&mut visited, self.entry, f)
     }
 
     fn visit(& self, visited: & mut HashSet<Label>, l: Label, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
