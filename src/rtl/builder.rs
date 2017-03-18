@@ -362,31 +362,59 @@ impl<'a, 'b> FuncDefinitionBuilder<'a> {
     }
 
     fn expr_bin_and(& mut self, b_lhs: Box<tast::Expression>, b_rhs: Box<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
-        let (cnd_reg, label) = if let Some(result) = result_reg {
-            (result, try!(self.expression(*b_rhs, exit.clone(), Some(result))))
+        let (result, label) = if let Some(result) = result_reg {
+            let cnd_reg = self.register_allocator.fresh();
+            let label1 = self.label_allocator.fresh();
+            let label2 = self.label_allocator.fresh();
+            let label3 = self.label_allocator.fresh();
+            self.instructions.insert(label1, Instruction::Const(1, result, exit));
+            self.instructions.insert(label2, Instruction::Branch(x64Branch::je, exit, label1));
+            self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
+            (Some(result), try!(self.expression(*b_rhs, label3, Some(cnd_reg))))
         } else {
-            (self.register_allocator.fresh(),
-            try!(self.expression(*b_rhs, exit.clone(), None)))
+            (None, try!(self.expression(*b_rhs, exit.clone(), None)))
         };
+        let cnd_reg = self.register_allocator.fresh();
         let label2 = self.label_allocator.fresh();
         let label3 = self.label_allocator.fresh();
-        self.instructions.insert(label2.clone(), Instruction::Branch(x64Branch::je, exit, label));
-        self.instructions.insert(label3.clone(), Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-        self.expression(*b_lhs, label3, Some(cnd_reg))
+        self.instructions.insert(label2, Instruction::Branch(x64Branch::je, exit, label));
+        self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
+        let label4 = try!(self.expression(*b_lhs, label3, Some(cnd_reg)));
+        if let Some(result) = result {
+            let label5 = self.label_allocator.fresh();
+            self.instructions.insert(label5, Instruction::Const(0, result, label4));
+            Ok(label5)
+        } else {
+            Ok(label4)
+        }
     }
 
     fn expr_bin_or(& mut self, b_lhs: Box<tast::Expression>, b_rhs: Box<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
-        let (cnd_reg, label) = if let Some(result) = result_reg {
-            (result, try!(self.expression(*b_rhs, exit.clone(), Some(result))))
+        let (result, label) = if let Some(result) = result_reg {
+            let cnd_reg = self.register_allocator.fresh();
+            let label1 = self.label_allocator.fresh();
+            let label2 = self.label_allocator.fresh();
+            let label3 = self.label_allocator.fresh();
+            self.instructions.insert(label1, Instruction::Const(0, result, exit));
+            self.instructions.insert(label2, Instruction::Branch(x64Branch::jne, exit, label1));
+            self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
+            (Some(result), try!(self.expression(*b_rhs, label3, Some(cnd_reg))))
         } else {
-            (self.register_allocator.fresh(),
-            try!(self.expression(*b_rhs, exit.clone(), None)))
+            (None, try!(self.expression(*b_rhs, exit.clone(), None)))
         };
+        let cnd_reg = self.register_allocator.fresh();
         let label2 = self.label_allocator.fresh();
         let label3 = self.label_allocator.fresh();
-        self.instructions.insert(label2.clone(), Instruction::Branch(x64Branch::jne, exit, label));
-        self.instructions.insert(label3.clone(), Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
-        self.expression(*b_lhs, label3, Some(cnd_reg))
+        self.instructions.insert(label2, Instruction::Branch(x64Branch::jne, exit, label));
+        self.instructions.insert(label3, Instruction::BinaryOp(x64BinaryOp::test, cnd_reg, cnd_reg, label2));
+        let label4 = try!(self.expression(*b_lhs, label3, Some(cnd_reg)));
+        if let Some(result) = result {
+            let label5 = self.label_allocator.fresh();
+            self.instructions.insert(label5, Instruction::Const(1, result, label4));
+            Ok(label5)
+        } else {
+            Ok(label4)
+        }
     }
 
     fn expr_call(& mut self, name: String, parameters: Vec<tast::Expression>, exit: Label, result_reg: Option<Register>) -> Result<Label, String> {
