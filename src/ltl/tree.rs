@@ -20,7 +20,7 @@ impl Display for Operand {
                 r.fmt(f)
             },
             Operand::Spilled(index) => {
-                write!(f, "{}(%rsp)", index)
+                write!(f, "{}(%rbp)", -(index as i64 * 8))
             },
         }
     }
