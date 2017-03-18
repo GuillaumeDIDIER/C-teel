@@ -126,7 +126,7 @@ impl Graph {
                 } else if let Some(reg) = self.todo.iter().find(|&reg_ref| {self.possible_colors[reg_ref].len() == 1}) {
                     //println!("Unique possible color without pref {:?} : {:?}", reg, *self.possible_colors[reg].iter().nth(0).unwrap());
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap())) // Missing a case here !!!
-                } else if let Some(reg) = self.todo.iter().find(| & reg_ref| {
+                } /*else if let Some(reg) = self.todo.iter().find(| & reg_ref| { // This is currently broken
                     let prefs = &self.graph[reg_ref].prefs;
                     prefs.iter().find(|& pref_ref| { self.result.get(pref_ref).is_some()}).is_some()
                 }) {
@@ -139,8 +139,8 @@ impl Graph {
                     let color = match *self.result.get(pref).unwrap(){Operand::Reg(c) => c, _=>{panic!("Wierd thing occured");}};
                     //println!("color with pref {:?} : {:?}", reg, color);
                     (*reg, Some(color))
-                } else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
                     //println!("Color without pref {:?} : {:?}", reg, *self.possible_colors[reg].iter().nth(0).unwrap());
+                }*/ else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else {
                     let reg = *self.todo.iter().nth(0).unwrap();
@@ -161,6 +161,7 @@ impl Graph {
 
     fn color_register(&mut self, reg: Register, color: Register){
         //println!("color_register {:?} {:?}", reg, color);
+        assert!(self.possible_colors[&reg].contains(&color));
         self.result.insert(reg, Operand::Reg(color));
         for interference in self.graph.get(&reg).unwrap().intfs.iter() {
             if let Some(pcolors) = self.possible_colors.get_mut(interference){
