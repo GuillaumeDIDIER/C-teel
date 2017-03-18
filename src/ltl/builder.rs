@@ -34,7 +34,7 @@ impl FuncDefinition {
         let graph = interference::Graph::new(&ertl_func.body, &ertl_func.liveness);
         //println!("{:#?}", graph);
         let (register_affectations, spilled) = graph.color_simple();
-        //println!("{:?}", register_affectations);
+        println!("{:#?}", register_affectations);
         let (builder, old_body)= FuncDefinitionBuilder::new(ertl_func, register_affectations, spilled);
         builder.build(old_body)
     }
