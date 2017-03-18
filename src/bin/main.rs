@@ -132,7 +132,7 @@ impl Driver {
             }
         };
         let ertl_ast = ertl::File::from_rtl(rtl_ast);
-        //println!("{}", ertl_ast);
+        println!("{}", ertl_ast);
         //println!("{:?}", ertl_ast);
         let ltl_ast = ltl::File::from_ertl(ertl_ast);
         println!("{}", ltl_ast);
