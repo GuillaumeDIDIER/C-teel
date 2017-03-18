@@ -533,7 +533,9 @@ impl FuncDefinition {
         match builder.bloc(function.blk, exit) {
             Err(e) => Err(e),
             Ok(entry_label) => {
-                Ok(FuncDefinition::new(builder, function.name, entry_label))
+                let entry = builder.label_allocator.fresh();
+                builder.instructions.insert(entry, Instruction::Const(0, builder.result, entry_label));
+                Ok(FuncDefinition::new(builder, function.name, entry))
             },
         }
     }

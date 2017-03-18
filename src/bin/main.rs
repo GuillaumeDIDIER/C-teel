@@ -125,7 +125,7 @@ impl Driver {
             return 0;
         }
         let rtl_ast = match rtl::File::from_typer_ast(tast) {
-            Ok(f) => {/*println!("{}", f);*/f},
+            Ok(f) => {println!("{}", f);f},
             Err(e) => {
                 println!("{:?}", e);
                 return 1;
@@ -144,7 +144,7 @@ impl Driver {
             Ok(mut f) => {write!(f, "{}", output);}
             _ => {}
         }
-        
+
 
         0
     }
