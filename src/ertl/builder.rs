@@ -128,11 +128,9 @@ impl FuncDefinitionBuilder {
                 self.new_body.insert(entry, Instruction::UnaryOp(op, reg, next));
             },
             rtl::Instruction::BinaryOp(x64BinaryOp::div, reg1, reg2, next) => {
-                let tmp1 = self.label_allocator.fresh();
                 let tmp2 = self.label_allocator.fresh();
                 let tmp3 = self.label_allocator.fresh();
-                self.new_body.insert(entry, Instruction::BinaryOp(x64BinaryOp::mov, reg2, Register::Rax, tmp1));
-                self.new_body.insert(tmp1, Instruction::Const(0, Register::Rdx, tmp2));
+                self.new_body.insert(entry, Instruction::BinaryOp(x64BinaryOp::mov, reg2, Register::Rax, tmp2));
                 self.new_body.insert(tmp2, Instruction::BinaryOp(x64BinaryOp::div, reg1, Register::Rax, tmp3));
                 self.new_body.insert(tmp3, Instruction::BinaryOp(x64BinaryOp::mov, Register::Rax, reg2, next));
             },

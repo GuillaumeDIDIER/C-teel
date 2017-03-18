@@ -99,7 +99,7 @@ impl FunctionOutput {
                 },
                 ltl::Instruction::BinaryOp(x64BinaryOp::div, sreg, dreg, next) => {
                     assert!(dreg == ltl::Operand::Reg(Register::Rax));
-                    self.instructions.push((Some(label), format!("    {} {}", x64BinaryOp::div, sreg)));
+                    self.instructions.push((Some(label), format!("    cqto\n    {} {}", x64BinaryOp::div, sreg)));
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::BinaryOp(op, sreg, dreg, next) => {
