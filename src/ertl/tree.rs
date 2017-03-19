@@ -81,7 +81,7 @@ impl Instruction {
                 (vec![], vec![register1, register2])
             },
             Instruction::BinaryOp(x64BinaryOp::div, register1, register2, _) => {
-                assert!(register2 == Register::Rax);
+                assert_eq!(register2, Register::Rax, "division destination should be %rax");
                 (vec![Register::Rax, Register::Rdx], vec![Register::Rax, Register::Rdx, register1])
             },
             Instruction::BinaryOp(_, register1, register2, _) => {

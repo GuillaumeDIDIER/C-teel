@@ -196,7 +196,7 @@ impl Parser {
                 f: call_m!(self.and_expr)  >>
                 ((op,f)))
             ) >>
-            (build_binop_left_assoc_tree(first, v))
+            (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(and_expr<Parser, &str, Node<Expression> >, mut self, do_parse!(
@@ -207,7 +207,7 @@ impl Parser {
                 f: call_m!(self.eq) >>
                 ((op,f)))
             ) >>
-        (build_binop_left_assoc_tree(first, v))
+        (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(eq<Parser, &str, Node<Expression> >, mut self, do_parse!(
@@ -218,7 +218,7 @@ impl Parser {
                 f: call_m!(self.compare) >>
                 ((op,f)))
             ) >>
-        (build_binop_left_assoc_tree(first, v))
+        (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(compare<Parser, &str, Node< Expression> >, mut self, do_parse!(
@@ -229,7 +229,7 @@ impl Parser {
                 f: call_m!(self.arith) >>
                 ((op,f)))
             ) >>
-        (build_binop_left_assoc_tree(first, v))
+        (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(arith<Parser, &str, Node<Expression> >, mut self, do_parse!(
@@ -240,7 +240,7 @@ impl Parser {
                 f: call_m!(self.term) >>
                 ((op,f)))
             ) >>
-        (build_binop_left_assoc_tree(first, v))
+        (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(term<Parser, &str, Node<Expression> >, mut self, do_parse!(
@@ -251,7 +251,7 @@ impl Parser {
                 f: call_m!(self.factor) >>
                 ((op,f)))
             ) >>
-        (build_binop_left_assoc_tree(first, v))
+        (build_binop_left_assoc_tree(first, &v))
     ));
 
     method!(factor<Parser, &str, Node<Expression> >, mut self, alt!(do_parse!(
@@ -270,7 +270,7 @@ impl Parser {
                 i: call_m!(self.identifier) >>
                 (i))
             ) >>
-        (build_deref_tree(first, v))
+        (build_deref_tree(first, &v))
     ));
 
     method!(atom<Parser, &str, Node<Expression> >, mut self, alt_complete!(
@@ -318,8 +318,8 @@ impl Default for Parser {
     }
 }
 
-pub fn build_deref_tree(first: Node<Expression>, v: Vec<Node<Ident>>) -> Node<Expression> {
-    let mut vm = v.clone();
+pub fn build_deref_tree(first: Node<Expression>, v: &[Node<Ident>]) -> Node<Expression> {
+    let mut vm = Vec::from(v);
     build_deref_tree_aux(first, &mut vm)
 }
 
@@ -337,9 +337,9 @@ pub fn build_deref_tree_aux(first: Node<Expression>, v: &mut Vec<Node<Ident>>) -
     }
 }
 fn build_binop_left_assoc_tree(first: Node<Expression>,
-                               v: Vec<(Node<BinaryOp>, Node<Expression>)>)
+                               v: &[(Node<BinaryOp>, Node<Expression>)])
                                -> Node<Expression> {
-    let mut vm = v.clone();
+    let mut vm = Vec::from(v);
     build_binop_left_assoc_tree_aux(first, &mut vm)
 }
 
