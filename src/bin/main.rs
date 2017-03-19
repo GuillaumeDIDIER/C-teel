@@ -127,6 +127,7 @@ impl Driver {
         let rtl_ast = match rtl::File::from_typer_ast(tast) {
             Ok(f) => {f},
             Err(e) => {
+                println!("{}", e);
                 return 1;
             }
         };
