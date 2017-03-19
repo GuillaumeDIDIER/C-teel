@@ -129,7 +129,7 @@ impl FunctionOutput {
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::GetParam(index, dest, next) => {
-                    self.instructions.push((Some(label), format!("    movq {}(%rbp) {}", index * 8, dest)));
+                    self.instructions.push((Some(label), format!("    movq {}(%rbp), {}", 8 + index * 8, dest)));
                     self.visit(visited, next, instructions);
 
                 },

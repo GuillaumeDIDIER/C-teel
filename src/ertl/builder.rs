@@ -174,7 +174,7 @@ impl FuncDefinitionBuilder {
                     self.new_body.insert(
                         tmp,
                         Instruction::UnaryOp(
-                            x64UnaryOp::addi((params.len() - 6) as i64),
+                            x64UnaryOp::addi(((params.len() - 6) * 8) as i64),
                             Register::Rsp, tmp2
                         )
                     );

@@ -2,7 +2,11 @@
 C-teel (pronounced steel) is compiler from a subset of C to x86_64 written in Rust.
 It is a school project unsuitable for use in production.
 
-Known issues :
+## Features
+ - Complete Mini-C (as defined by INF564 at École polytechnique)
+ - Supports functions with more than 6 parameters
+
+## Known issues
 
  - The character counting logic is flawed. And under some circumstances,
  the line counting logic can be too. This is due to the parser backtracking
@@ -11,7 +15,8 @@ Known issues :
  - `if` and `while` conditions use inefficient constructs.
  (The condition is wholly evaluated and only then is `testq` used on the result to determine jump, instead of selecting the right jcc to use)
  - register allocation use simple heuristics which can sometimes be inefficient.
- - function with more than 6 parameters is an experimental feature (implemented but not thoroughly tested).
+
+
 
 ## Licence
 
