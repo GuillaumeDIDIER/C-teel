@@ -1,4 +1,4 @@
-use rtl::label::Label;
+use common::label::Label;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt;

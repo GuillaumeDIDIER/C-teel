@@ -1,11 +1,11 @@
-use rtl::ops;
+use common::ops;
 pub use parse::ast::Ident;
 //use std::vec;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
 pub use common::register::Register;
-pub use rtl::label::Label;
+pub use common::label::Label;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operand {

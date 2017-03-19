@@ -3,7 +3,7 @@ use ltl::Register;
 use ltl::Label;
 use ertl::liveness;
 use ertl;
-use rtl::ops;
+use common::ops;
 use ltl::tree::Operand;
 
 

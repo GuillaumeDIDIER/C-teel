@@ -1,13 +1,13 @@
-use rtl::ops;
+use common::ops;
 pub use parse::ast::Ident;
 //use std::vec;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
-pub use common::register::Register;
-pub use rtl::label::Label;
-use rtl::label::LabelAllocator;
-use rtl::ops::*;
+use common::register::Register;
+use common::label::Label;
+use common::label::LabelAllocator;
+use common::ops::*;
 use ertl::liveness::LivenessInfo;
 
 

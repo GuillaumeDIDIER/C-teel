@@ -1,8 +1,8 @@
 use output::*;
 use ltl;
-use rtl::ops::*;
+use common::ops::*;
 use std::collections::{HashSet, HashMap};
-use rtl::label::Label;
+use common::label::Label;
 use common::register::Register;
 use std::borrow::Cow;
 

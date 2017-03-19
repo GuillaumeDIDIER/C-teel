@@ -1,10 +1,10 @@
 use ertl::*;
 use rtl;
-use rtl::label::LabelAllocator;
-use rtl::ops::*;
+use common::label::{Label, LabelAllocator};
+use common::ops::*;
 use std::collections::HashMap;
 use ertl::liveness::LivenessInfo;
-use common::register::RegisterAllocator;
+use common::register::{Register, RegisterAllocator};
 
 impl File {
     pub fn from_rtl(rtl_file: rtl::File) -> File { // Is there a possibilty of error ?

@@ -1,12 +1,11 @@
-use rtl::ops;
+use common::ops;
 pub use parse::ast::Ident;
-//use std::vec;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fmt;
 use common::register::Register;
-use rtl::label::Label;
-use rtl::label::LabelAllocator;
+use common::label::Label;
+use common::label::LabelAllocator;
 use common::register::RegisterAllocator;
 //use rtl::label;
 

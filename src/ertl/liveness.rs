@@ -1,4 +1,4 @@
-use ertl::Label;
+use common::label::Label;
 use common::register::Register;
 use ertl::Instruction;
 use std::collections::{HashMap, HashSet};

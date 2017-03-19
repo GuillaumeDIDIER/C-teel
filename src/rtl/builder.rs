@@ -1,7 +1,7 @@
 use rtl::*;
-use rtl::label::*;
+use common::label::*;
 use common::register::*;
-use rtl::ops::*;
+use common::ops::*;
 use std::iter::FromIterator;
 use typing::ast as tast;
 use std::collections::{HashMap, HashSet};

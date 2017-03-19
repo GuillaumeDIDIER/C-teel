@@ -1,8 +1,8 @@
 use ertl;
 use ltl::*;
-use rtl::label::LabelAllocator;
+use common::label::LabelAllocator;
 use std::collections::HashMap;
-use rtl::ops::*;
+use common::ops::*;
 
 impl File {
     pub fn from_ertl(ertl_file: ertl::File) -> File {
