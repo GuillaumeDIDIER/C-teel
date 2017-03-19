@@ -53,7 +53,6 @@ impl Graph {
             }
         }
         for (label, live_info) in liveness {
-            //println!("{:?} {:?}", label, live_info);
             let mut outs = live_info.outs.clone();
             let defs = live_info.defs.clone();
             if movs.contains_key(label) {
@@ -75,7 +74,6 @@ impl Graph {
             }
         }
         let keys : HashSet<Register> = graph.keys().cloned().collect();
-        //println!("{:?}", keys);
         for ref reg in keys {
             let arcs = graph.get_mut(reg).unwrap();
             let conflicts : HashSet<Register> = arcs.prefs.intersection(&arcs.intfs).cloned().collect();
@@ -93,14 +91,11 @@ impl Graph {
         for reg in graph.keys().cloned() {
             todo.insert(reg);
             if reg.is_pseudo() {
-                //println!("{:?} : {:?} - {:?}", reg, allocatable, graph.get(&reg).unwrap().intfs);
-                //println!("= {:?}", &allocatable - &graph.get(&reg).unwrap().intfs);
                 possible_colors.insert(reg, &allocatable - &graph.get(&reg).unwrap().intfs);
             } else {
                 possible_colors.insert(reg, [reg].iter().cloned().collect());
             }
         }
-        //println!("{:#?}", possible_colors);
 
         Graph{
             graph: graph,
@@ -125,10 +120,8 @@ impl Graph {
                     }
                     return false;
                 }) {
-                    //println!("Unique possible color with pref {:?} : {:?}", reg, *self.possible_colors[reg].iter().nth(0).unwrap());
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else if let Some(reg) = self.todo.iter().find(|&reg_ref| {self.possible_colors[reg_ref].len() == 1}) {
-                    //println!("Unique possible color without pref {:?} : {:?}", reg, *self.possible_colors[reg].iter().nth(0).unwrap());
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap())) // Missing a case here !!!
                 } /*else if let Some(reg) = self.todo.iter().find(| & reg_ref| { // This is currently broken
                     let prefs = &self.graph[reg_ref].prefs;
@@ -141,14 +134,11 @@ impl Graph {
                         }
                     }).unwrap();
                     let color = match *self.result.get(pref).unwrap(){Operand::Reg(c) => c, _=>{panic!("Wierd thing occured");}};
-                    println!("color with pref {:?} : {:?}", reg, color);
                     (*reg, Some(color))
                 } */else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
-                    //println!("Color without pref {:?} : {:?}", reg, *self.possible_colors[reg].iter().nth(0).unwrap());
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else {
                     let reg = *self.todo.iter().nth(0).unwrap();
-                    //println!("Spilled {:?}", reg);
                     (reg, None)
                 }
             ;
@@ -165,18 +155,15 @@ impl Graph {
 
     fn color_register(&mut self, reg: Register, color: Register){
         assert!(self.possible_colors[&reg].contains(&color));
-        //println!("color_register {:?} {:?}", reg, color);
         self.result.insert(reg, Operand::Reg(color));
         let interferences = self.graph.get(&reg).unwrap().intfs.clone().into_iter();
         for interference in interferences {
             if let Some(pcolors) = self.possible_colors.get_mut(&interference){
                 pcolors.remove(&color);
-                //println!("  interfers with {:?}, remove {:?} :", interference, color);
             } else {
                 panic!("Missing node in possible colors graph")
             }
             self.graph.get_mut(&interference).unwrap().prefs.remove(&color);
-            println!("    {:?}", self.possible_colors[&interference]);
         }
     }
 

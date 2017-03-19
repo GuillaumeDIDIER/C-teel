@@ -32,9 +32,7 @@ struct FuncDefinitionBuilder {
 impl FuncDefinition {
     pub fn from_ertl(ertl_func: ertl::FuncDefinition) -> FuncDefinition {
         let graph = interference::Graph::new(&ertl_func.body, &ertl_func.liveness);
-        //println!("{:#?}", graph);
         let (register_affectations, spilled) = graph.color_simple();
-        //println!("{:#?}", register_affectations);
         let (builder, old_body)= FuncDefinitionBuilder::new(ertl_func, register_affectations, spilled);
         builder.build(old_body)
     }
@@ -64,7 +62,6 @@ impl FuncDefinitionBuilder {
     }
 
     fn lookup(&self, reg: Register) -> Operand {
-        //println!("lookup {:?}", reg);
         *self.register_affectations.get(&reg).unwrap()
     }
 

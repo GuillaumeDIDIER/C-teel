@@ -97,7 +97,7 @@ impl Driver {
                 s
             },
             Err(e) => {
-                println!("{:?}", e);
+                println!("I/O error: {}", e);
                 return -2;
             }
         };
@@ -109,8 +109,8 @@ impl Driver {
 
         let past = match p.file(&src) {
             (_, IResult::Done(_, past)) => {past},
-            (_, IResult::Incomplete(i)) => {println!("{:?}", i);return 1;},
-            (_, IResult::Error(e)) => {println!("{:?}", e);return 1;},
+            (_, IResult::Incomplete(i)) => {println!("Unexepcted en of input: {:?}", i);return 1;},
+            (_, IResult::Error(e)) => {println!("Parse error: {}", e);return 1;},
         };
         if let Mode::Parse = self.mode {
             return 0;
@@ -118,35 +118,27 @@ impl Driver {
         // Type file
         let tast = match typing::ast::File::type_file(past) {
             Ok(t) => t,
-            Err(e) => {println!("{:?}", e);return 1;},
+            Err(e) => {println!("Type error: {}", e);return 1;},
         };
         if let Mode::Type = self.mode {
             println!("{:#?}", tast);
             return 0;
         }
         let rtl_ast = match rtl::File::from_typer_ast(tast) {
-            Ok(f) => {println!("{}", f);f},
+            Ok(f) => {f},
             Err(e) => {
-                println!("{:?}", e);
                 return 1;
             }
         };
         let ertl_ast = ertl::File::from_rtl(rtl_ast);
-        println!("{}", ertl_ast);
-        //println!("{:?}", ertl_ast);
         let ltl_ast = ltl::File::from_ertl(ertl_ast);
-        println!("{}", ltl_ast);
         let output = output::Output::from_ltl(ltl_ast);
-        println!("{}", output);
         let path = Path::new(&self.filename).with_extension("s");
-        let mut outputfile = File::create(path);
+        let outputfile = File::create(path);
         match outputfile {
-            Ok(mut f) => {write!(f, "{}", output);}
-            _ => {}
+            Ok(mut f) => {let res = write!(f, "{}", output);if res.is_err() {-1} else {0} }
+            _ => {-1}
         }
-
-
-        0
     }
 }
 
@@ -154,7 +146,7 @@ fn main(){
     let driver = match Driver::from_args(std::env::args_os()) {
         Ok(d) => d,
         Err(e) => {
-            println!("{:?}", e);
+            println!("{}", e);
             exit(-1);
         }
     };

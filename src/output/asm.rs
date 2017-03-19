@@ -33,7 +33,6 @@ pub struct FunctionOutput {
 impl Display for FunctionOutput {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         try!(write!(f, "{}:\n", self.name));
-        //println!("{:?}", self.labels);
         for &(ref label, ref instruction) in self.instructions.iter() {
             if let &Some(l) = label {
                 if self.labels.contains(&l) {
