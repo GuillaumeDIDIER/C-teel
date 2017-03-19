@@ -1,25 +1,35 @@
-extern crate C_teel;
+// External imports
+extern crate C_teel; // NB, for the binaries, the crate is still considered external.
 extern crate nom;
 extern crate clap;
 
+
+// Imports
+//      Standard library
 use std::path::Path;
-
-
-use C_teel::parse;
-use C_teel::typing;
-//use C_teel::parse::ast;
-use nom::IResult;
-use clap::{Arg, App};
 use std::io::prelude::*;
 use std::fs::File;
 use std::process::exit;
 use std::ffi::OsString;
+//      From the parser combinator library
+use nom::IResult;
+//      Argument parsing
+use clap::{Arg, App};
+//      The diferrent passes
+use C_teel::parse;
+use C_teel::typing;
 use C_teel::rtl;
 use C_teel::ertl;
 use C_teel::ltl;
 use C_teel::output;
-//use std::boxed;
 
+/*
+The compilation is controlled from the driver structure.
+This structure is initialized with the program args and then the run method is invoqued which does the heavy lifting.
+
+*/
+
+// Self explanatory see Driver::run for more details
 enum Mode {
     Open,
     Parse,
@@ -33,8 +43,11 @@ struct Driver {
 }
 
 impl Driver {
+    // Constructor, which does the argument parsing logix (using clap)
     fn from_args<I, T>(args: I) -> Result<Self, clap::Error> where I: IntoIterator<Item=T>, T: Into<OsString> + Clone {
 
+
+        // The following logic declares all the arguments to the library.
         let arg_input = Arg::with_name("INPUT")
             .help("Name of the source file to use")
             .required(true)
@@ -55,7 +68,7 @@ impl Driver {
                 .help("Fully compiles the source file")
                 .conflicts_with_all(&["parse-only", "type-only", "open-only"]);
         let app = App::new("C-teel")
-            .version("0.0.1")
+            .version("0.1.0")
             .author("guillaume.didier@polytechnique.edu")
             .about("Compiles Badly a subset of C to x86_64")
             .arg(arg_input)
@@ -64,9 +77,7 @@ impl Driver {
             .arg(arg_open_only)
             .arg(arg_full);
 
-
-
-
+        // This parses thos arguments and deduce the driver parameters.
         let args_matches: clap::ArgMatches = match app.get_matches_from_safe(args) {
             Err(e) => {return Err(e);}
             Ok(m) => m
@@ -86,6 +97,7 @@ impl Driver {
         Ok(Driver{mode: mode, filename: String::from(input)})
     }
 
+    // This is where the logic of compilation is.
     fn run(self) -> i32 {
         // Open file
         let src = match File::open(&self.filename) {
@@ -101,9 +113,11 @@ impl Driver {
                 return -2;
             }
         };
+        // This is not an interesting mode of oiperation but enables checking if the preceding logic is broken.
         if let Mode::Open = self.mode {
             return 0;
         }
+
         // Parse file
         let p = parse::parser::Parser::new();
 
@@ -112,18 +126,28 @@ impl Driver {
             (_, IResult::Incomplete(i)) => {println!("Unexepcted en of input: {:?}", i);return 1;},
             (_, IResult::Error(e)) => {println!("Parse error: {}", e);return 1;},
         };
+
+        // Output and return if in parse-only mode.
         if let Mode::Parse = self.mode {
+            println!("{:#?}", past);
             return 0;
         }
+
         // Type file
         let tast = match typing::ast::File::type_file(past) {
             Ok(t) => t,
             Err(e) => {println!("Type error: {}", e);return 1;},
         };
+
+        // Output and return if in type-only mode.
         if let Mode::Type = self.mode {
             println!("{:#?}", tast);
             return 0;
         }
+
+        // Code generation
+
+        // This pass should not error out
         let rtl_ast = match rtl::File::from_typer_ast(tast) {
             Ok(f) => {f},
             Err(e) => {
@@ -131,9 +155,13 @@ impl Driver {
                 return 1;
             }
         };
+
+        // the other passes do not error out, but panic should insane condition occur.
         let ertl_ast = ertl::File::from_rtl(rtl_ast);
         let ltl_ast = ltl::File::from_ertl(ertl_ast);
-        let output = output::Output::from_ltl(ltl_ast);
+        let output = output::Output::from_ltl(ltl_ast); // This is a vector of (Label, String). The final logic is dieffered in the implementation of the Display::fmt trait.
+
+        // Output to file
         let path = Path::new(&self.filename).with_extension("s");
         let outputfile = File::create(path);
         match outputfile {
@@ -144,6 +172,7 @@ impl Driver {
 }
 
 fn main(){
+    // Get an initialized driver or error out
     let driver = match Driver::from_args(std::env::args_os()) {
         Ok(d) => d,
         Err(e) => {
@@ -151,5 +180,6 @@ fn main(){
             exit(-1);
         }
     };
+    // run the compilation
     exit(driver.run())
 }
