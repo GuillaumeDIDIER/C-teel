@@ -71,7 +71,7 @@ impl FuncDefinitionBuilder {
                 3 => Instruction::BinaryOp(x64BinaryOp::mov, Register::Rcx, self.formals[i], next), // Rcx
                 4 => Instruction::BinaryOp(x64BinaryOp::mov, Register::R8,  self.formals[i], next), // R8
                 5 => Instruction::BinaryOp(x64BinaryOp::mov, Register::R9,  self.formals[i], next), // R9
-                _ => Instruction::GetParam(i - 6, self.formals[i], next), // Stack
+                _ => Instruction::GetParam(self.formals.len() - i, self.formals[i], next), // Stack
             });
         }
         let mut saved_registers = Vec::new();

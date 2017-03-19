@@ -129,11 +129,13 @@ impl FunctionOutput {
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::GetParam(index, dest, next) => {
-                    panic!("Unimplemented");
+                    self.instructions.push((Some(label), format!("    movq {}(%rbp) {}", index * 8, dest)));
+                    self.visit(visited, next, instructions);
 
                 },
                 ltl::Instruction::PushParam(src, next) => {
-                    panic!("Unimplemented");
+                    self.instructions.push((Some(label), format!("    pushq {}", src)));
+                    self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::Return => {
                     self.instructions.push((Some(label), String::from("    retq")));
