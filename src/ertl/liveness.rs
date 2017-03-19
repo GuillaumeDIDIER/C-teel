@@ -16,6 +16,7 @@ pub struct LivenessInfo {
     pub outs: HashSet<Register>,
 }
 
+// Implementation of  kildal's algorithm
 impl LivenessInfo {
     pub fn compute(instructions: &HashMap<Label, Instruction>) -> HashMap<Label, LivenessInfo> {
 

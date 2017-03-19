@@ -11,7 +11,7 @@ use common::ops::*;
 use ertl::liveness::LivenessInfo;
 
 
-#[derive(Debug)] // Fixme !!!
+#[derive(Debug)]
 pub enum Instruction {
     Const(i64, Register, Label),
     AccessGlobal(Ident, Register, Label),
@@ -25,7 +25,7 @@ pub enum Instruction {
     Goto(Label),
     AllocFrame(Label),
     DeleteFrame(Label),
-    GetParam(usize, Register, Label), // Parameters will be indexed starting from 0 on the stack. (hence indice minus 6)
+    GetParam(usize, Register, Label), // Parameters will be indexed starting from 1 in reverse order on the stack. This convention makes for an easier use of index, as it gives the index when starting from %rbp.
     PushParam(Register, Label),
     Return,
 }
@@ -173,7 +173,7 @@ pub struct FuncDefinition {
     pub liveness : HashMap<Label, LivenessInfo>,
 }
 
-impl FuncDefinition {
+impl FuncDefinition { // Implemented by visiting teh graph, inspired from OCaml provided code.
     fn print_body(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut visited = HashSet::<Label>::new();
         self.visit(&mut visited, self.entry, f)

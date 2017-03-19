@@ -8,7 +8,7 @@ pub struct Location {
 }
 
 #[derive(Clone, Debug)]
-pub struct Node<T> {
+pub struct Node<T> { // Generic metadata for all the nodes in the tree.
     pub start: Location,
     pub stop: Location,
     pub t: T,

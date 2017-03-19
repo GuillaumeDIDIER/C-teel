@@ -24,7 +24,7 @@ impl Arcs {
 }
 
 #[derive(Debug)]
-pub struct Graph {
+pub struct Graph { //Contains the graph and useful metadata.
     graph: HashMap<Register, Arcs>,
     result: HashMap<Register, Operand>,
     possible_colors : HashMap<Register, HashSet<Register>>,
@@ -33,6 +33,8 @@ pub struct Graph {
 }
 
 impl Graph {
+
+    // Initialise the graph and compute interferences, possible colors and preferences.
     pub fn new(instructions: &HashMap<Label, ertl::Instruction>, liveness: &HashMap<Label, liveness::LivenessInfo>) -> Self {
         let mut graph = HashMap::new();
         let mut movs = HashMap::new();
@@ -103,10 +105,14 @@ impl Graph {
         }
     }
 
+    // Simple coloring algorithm.
+
     pub fn color_simple(mut self) -> (HashMap<Register, Operand>, usize) {
 
         while ! self.todo.is_empty() {
+            // Select a register to color or spill.
             let (register, color) : (Register, Option<Register>) =
+                // First case : single possible color with preference
                 if let Some(reg) = self.todo.iter().find(|&reg_ref| {
                     if self.possible_colors[reg_ref].len() == 1 {
                         let color = self.possible_colors[reg_ref].iter().nth(0).unwrap();
@@ -117,8 +123,13 @@ impl Graph {
                     }
                 }) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
+
+                // second case : single possible color without preference
                 } else if let Some(reg) = self.todo.iter().find(|&reg_ref| {self.possible_colors[reg_ref].len() == 1}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
+
+                // Third case : preference and multiple possible colors
+                // This case was the trickiest to implement
                 } else if let Some(reg) = self.todo.iter().find(| & reg_ref| {
                     let prefs = &self.graph[reg_ref].prefs;
                     prefs.iter().any(|& pref_ref| { if let Some(&Operand::Reg(ref c)) = self.result.get(&pref_ref) {self.possible_colors[reg_ref].contains(c)} else {false}})
@@ -134,13 +145,16 @@ impl Graph {
                         _ => {panic!("Weird thing occured");}
                     };
                     (*reg, Some(color))
+                // case 4 : possible colors without preference
                 } else if let Some(reg) = self.todo.iter().find(|& reg_ref| {!self.possible_colors[reg_ref].is_empty()}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
+                // case 5 :Need to spill at least one pseudo register
                 } else {
                     let reg = *self.todo.iter().nth(0).unwrap();
                     (reg, None)
                 }
             ;
+            // remove it from the todo list and color it (or spill it)
             self.todo.remove(&register);
             if let Some(color) = color {
                 self.color_register(register, color);
@@ -152,7 +166,7 @@ impl Graph {
 
     }
 
-    fn color_register(&mut self, reg: Register, color: Register){
+    fn color_register(&mut self, reg: Register, color: Register){ // Color a register and deals with interferences and preferences.
         assert!(self.possible_colors[&reg].contains(&color));
         self.result.insert(reg, Operand::Reg(color));
         let interferences = self.graph[&reg].intfs.clone().into_iter();
