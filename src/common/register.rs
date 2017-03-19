@@ -55,8 +55,8 @@ impl Register {
     }
 
     pub fn is_pseudo(&self) -> bool {
-        match self {
-            &Register::Pseudo(_) => true,
+        match *self {
+            Register::Pseudo(_) => true,
             _ => false,
         }
     }
@@ -68,29 +68,29 @@ impl Register {
 
 impl Display for Register {
     fn fmt(&self,  f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            &Register::Rax => {return write!(f, "%rax");},
-            &Register::Rbx => {return write!(f, "%rbx");},
-            &Register::Rcx => {return write!(f, "%rcx");},
-            &Register::Rdx => {return write!(f, "%rdx");},
-            &Register::Rdi => {return write!(f, "%rdi");},
-            &Register::Rsi => {return write!(f, "%rsi");},
-            &Register::Rsp => {return write!(f, "%rsp");},
-            &Register::Rbp => {return write!(f, "%rbp");},
-            &Register::R8  => {return write!(f, "%r8 ");},
-            &Register::R9  => {return write!(f, "%r9 ");},
-            &Register::R10 => {return write!(f, "%r10");},
-            &Register::R11 => {return write!(f, "%r11");},
-            &Register::R12 => {return write!(f, "%r12");},
-            &Register::R13 => {return write!(f, "%r13");},
-            &Register::R14 => {return write!(f, "%r14");},
-            &Register::R15 => {return write!(f, "%r15");},
-            &Register::Pseudo(i) => {return write!(f, "#{:?}", i);},
+        match *self {
+            Register::Rax => {return write!(f, "%rax");},
+            Register::Rbx => {return write!(f, "%rbx");},
+            Register::Rcx => {return write!(f, "%rcx");},
+            Register::Rdx => {return write!(f, "%rdx");},
+            Register::Rdi => {return write!(f, "%rdi");},
+            Register::Rsi => {return write!(f, "%rsi");},
+            Register::Rsp => {return write!(f, "%rsp");},
+            Register::Rbp => {return write!(f, "%rbp");},
+            Register::R8  => {return write!(f, "%r8 ");},
+            Register::R9  => {return write!(f, "%r9 ");},
+            Register::R10 => {return write!(f, "%r10");},
+            Register::R11 => {return write!(f, "%r11");},
+            Register::R12 => {return write!(f, "%r12");},
+            Register::R13 => {return write!(f, "%r13");},
+            Register::R14 => {return write!(f, "%r14");},
+            Register::R15 => {return write!(f, "%r15");},
+            Register::Pseudo(i) => {return write!(f, "#{:?}", i);},
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RegisterAllocator {
     count: i64,
 }

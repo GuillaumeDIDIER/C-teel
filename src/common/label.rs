@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LabelAllocator {
     count: i64,
 }
@@ -6,7 +6,7 @@ pub struct LabelAllocator {
 pub type Label = i64;
 
 
-impl<'a> LabelAllocator {
+impl LabelAllocator {
     pub fn new() -> Self {
         LabelAllocator{count: 0}
     }

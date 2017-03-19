@@ -143,7 +143,7 @@ impl FuncDefinition {
         if visited.contains(&l) {
             return Ok(());
         }
-        visited.insert(l.clone());
+        visited.insert(l);
         if let Some(instruction) = self.body.get(&l) {
             try!(write!(f, "  {}: {}\n", l, instruction));
             for s in instruction.successors() {

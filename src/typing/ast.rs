@@ -102,17 +102,14 @@ pub enum ExprKind {
 
 impl ExprKind {
     pub fn is_kind_pure(&self) -> bool {
-        match self {
-            &ExprKind::Const(_) => true,
-            &ExprKind::Lvalue(_) => true,
-            &ExprKind::MembDeref(ref be, _) => be.is_expr_pure(),
-            &ExprKind::Call(..) => false, // This could change.
-            &ExprKind::Unary(_, ref be) => be.is_expr_pure(),
-            &ExprKind::Binary(ref be1, ref op, ref be2) => match op {
-                &BinaryOp::Affect => false,
+        match *self {
+            ExprKind::Const(_) | ExprKind::Lvalue(_) | ExprKind::Sizeof(_) => true,
+            ExprKind::MembDeref(ref be, _) | ExprKind::Unary(_, ref be) => be.is_expr_pure(),
+            ExprKind::Call(..) => false, // This could change.
+            ExprKind::Binary(ref be1, ref op, ref be2) => match *op {
+                BinaryOp::Affect => false,
                 _ => be1.is_expr_pure() && be2.is_expr_pure(),
             },
-            &ExprKind::Sizeof(_) => true,
         }
     }
 }

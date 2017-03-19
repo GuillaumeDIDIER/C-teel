@@ -7,7 +7,7 @@ use common::ops;
 use ltl::tree::Operand;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Arcs {
     pub prefs: HashSet<Register>,
     pub intfs: HashSet<Register>,
@@ -37,19 +37,16 @@ impl Graph {
         let mut graph = HashMap::new();
         let mut movs = HashMap::new();
         for (label, instruction) in instructions {
-            match *instruction {
-                ertl::Instruction::BinaryOp(ops::x64BinaryOp::mov, register1, register2, _) => {
-                    {
-                        let arc1 = graph.entry(register1).or_insert(Arcs::new());
-                        arc1.prefs.insert(register2);
-                    }
-                    {
-                        let arc2 = graph.entry(register2).or_insert(Arcs::new());
-                        arc2.prefs.insert(register1);
-                    }
-                    movs.insert(label, register1);
-                },
-                _ => {},
+            if let ertl::Instruction::BinaryOp(ops::x64BinaryOp::mov, register1, register2, _) = *instruction {
+                {
+                    let arc1 = graph.entry(register1).or_insert_with(Arcs::new);
+                    arc1.prefs.insert(register2);
+                }
+                {
+                    let arc2 = graph.entry(register2).or_insert_with(Arcs::new);
+                    arc2.prefs.insert(register1);
+                }
+                movs.insert(label, register1);
             }
         }
         for (label, live_info) in liveness {
@@ -63,11 +60,11 @@ impl Graph {
             for var in defs {
                 for out in outs.clone() {
                     {
-                        let arc1 = graph.entry(var).or_insert(Arcs::new());
+                        let arc1 = graph.entry(var).or_insert_with(Arcs::new);
                         arc1.intfs.insert(out);
                     }
                     {
-                        let arc2 = graph.entry(out).or_insert(Arcs::new());
+                        let arc2 = graph.entry(out).or_insert_with(Arcs::new);
                         arc2.intfs.insert(var);
                     }
                 }
@@ -91,7 +88,7 @@ impl Graph {
         for reg in graph.keys().cloned() {
             todo.insert(reg);
             if reg.is_pseudo() {
-                possible_colors.insert(reg, &allocatable - &graph.get(&reg).unwrap().intfs);
+                possible_colors.insert(reg, &allocatable - &graph[&reg].intfs);
             } else {
                 possible_colors.insert(reg, [reg].iter().cloned().collect());
             }
@@ -114,28 +111,30 @@ impl Graph {
                     if self.possible_colors[reg_ref].len() == 1 {
                         let color = self.possible_colors[reg_ref].iter().nth(0).unwrap();
                         let prefs = &self.graph[reg_ref].prefs;
-                        if let Some(_) = prefs.iter().find(|&pref_ref| {self.result.get(pref_ref) == Some(&Operand::Reg(*color))}) {
-                            return true;
-                        }
+                        prefs.iter().any(|&pref_ref| {self.result.get(&pref_ref) == Some(&Operand::Reg(*color))})
+                    } else {
+                        false
                     }
-                    return false;
                 }) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else if let Some(reg) = self.todo.iter().find(|&reg_ref| {self.possible_colors[reg_ref].len() == 1}) {
-                    (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap())) // Missing a case here !!!
-                } else if let Some(reg) = self.todo.iter().find(| & reg_ref| { // This is currently broken
+                    (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
+                } else if let Some(reg) = self.todo.iter().find(| & reg_ref| {
                     let prefs = &self.graph[reg_ref].prefs;
-                    prefs.iter().find(|& pref_ref| { if let Some(&Operand::Reg(ref c)) = self.result.get(pref_ref) {self.possible_colors[reg_ref].contains(c)} else {false}}).is_some()
+                    prefs.iter().any(|& pref_ref| { if let Some(&Operand::Reg(ref c)) = self.result.get(&pref_ref) {self.possible_colors[reg_ref].contains(c)} else {false}})
                 }) {
-                    let pref = &self.graph[reg].prefs.iter().find(|& pref_ref| {
+                    let pref = self.graph[reg].prefs.iter().find(|& pref_ref| {
                         match self.result.get(pref_ref) {
                             Some(&Operand::Reg(ref c)) => self.possible_colors[reg].contains(c),
                             _ => false,
                         }
                     }).unwrap();
-                    let color = match *self.result.get(pref).unwrap(){Operand::Reg(c) => c, _=>{panic!("Wierd thing occured");}};
+                    let color = match self.result[pref] {
+                        Operand::Reg(c) => c,
+                        _ => {panic!("Weird thing occured");}
+                    };
                     (*reg, Some(color))
-                } else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
+                } else if let Some(reg) = self.todo.iter().find(|& reg_ref| {!self.possible_colors[reg_ref].is_empty()}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else {
                     let reg = *self.todo.iter().nth(0).unwrap();
@@ -156,7 +155,7 @@ impl Graph {
     fn color_register(&mut self, reg: Register, color: Register){
         assert!(self.possible_colors[&reg].contains(&color));
         self.result.insert(reg, Operand::Reg(color));
-        let interferences = self.graph.get(&reg).unwrap().intfs.clone().into_iter();
+        let interferences = self.graph[&reg].intfs.clone().into_iter();
         for interference in interferences {
             if let Some(pcolors) = self.possible_colors.get_mut(&interference){
                 pcolors.remove(&color);

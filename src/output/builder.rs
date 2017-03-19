@@ -111,7 +111,7 @@ impl FunctionOutput {
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::Goto(next) => {
-                    self.instructions.push((Some(label), format!("")));
+                    self.instructions.push((Some(label), String::new()));
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::Branch(op, jump_label, next) => {
@@ -125,7 +125,7 @@ impl FunctionOutput {
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::Leave(next) => {
-                    self.instructions.push((Some(label), format!("    leave")));
+                    self.instructions.push((Some(label), String::from("    leave")));
                     self.visit(visited, next, instructions);
                 },
                 ltl::Instruction::GetParam(index, dest, next) => {
@@ -136,7 +136,7 @@ impl FunctionOutput {
                     panic!("Unimplemented");
                 },
                 ltl::Instruction::Return => {
-                    self.instructions.push((Some(label), format!("    retq")));
+                    self.instructions.push((Some(label), String::from("    retq")));
                 },
                 //_ => {}
             }

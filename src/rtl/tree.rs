@@ -106,14 +106,14 @@ pub struct FuncDefinition {
 impl FuncDefinition {
     fn print_body(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut visited = HashSet::<Label>::new();
-        return self.visit(&mut visited, self.entry.clone(), f);
+        self.visit(&mut visited, self.entry, f)
     }
 
     fn visit(& self, visited: & mut HashSet<Label>, l: Label, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if visited.contains(&l) {
             return Ok(());
         }
-        visited.insert(l.clone());
+        visited.insert(l);
         if let Some(instruction) = self.body.get(&l) {
             try!(write!(f, "  {}: {}\n", l, instruction));
             for s in instruction.successors() {
@@ -148,7 +148,7 @@ impl Display for FuncDefinition {
             }
         }
         try!(write!(f, "\n"));
-        return self.print_body(f);
+        self.print_body(f)
     }
 
 }

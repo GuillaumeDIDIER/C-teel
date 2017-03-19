@@ -17,7 +17,7 @@ impl Parser {
         }
     }
 
-    pub fn get_location<'a>(self, input: &'a str) -> (Parser, nom::IResult<&'a str, Location>) {
+    pub fn get_location(self, input: & str) -> (Parser, nom::IResult<& str, Location>) {
         let l = Location::clone(&self.location);
         (self, nom::IResult::Done(input, l))
     }

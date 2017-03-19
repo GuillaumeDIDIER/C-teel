@@ -19,8 +19,8 @@ pub enum x64UnaryOp {
 
 impl Display for x64UnaryOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            &x64UnaryOp::addi(ival) => {
+        match *self {
+            x64UnaryOp::addi(ival) => {
                 write!(f, "addq ${}, ", ival)
             },
             _ => {

@@ -25,7 +25,7 @@ struct FuncDefinitionBuilder {
     entry: Label,
     register_affectations: HashMap<Register, Operand>,
     spilled: usize,
-    stack_params: usize,
+    //stack_params: usize,
     body: HashMap<Label, Instruction>,
 }
 
@@ -45,7 +45,7 @@ impl FuncDefinitionBuilder {
             name: ertl_func.name,
             entry: ertl_func.entry,
             body: HashMap::new(),
-            stack_params: if ertl_func.formals > 6 { ertl_func.formals - 6 } else {0},
+            //stack_params: if ertl_func.formals > 6 { ertl_func.formals - 6 } else {0},
             spilled: spilled,
             register_affectations: register_affectations,
         }, ertl_func.body)
@@ -62,7 +62,7 @@ impl FuncDefinitionBuilder {
     }
 
     fn lookup(&self, reg: Register) -> Operand {
-        *self.register_affectations.get(&reg).unwrap()
+        self.register_affectations[&reg]
     }
 
     fn fix_dest(&mut self, dest: Operand, tmp_reg: Register, next: Label) -> (Register, Label) {

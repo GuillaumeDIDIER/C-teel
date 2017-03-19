@@ -76,7 +76,8 @@ impl Instruction {
                 (vec![register_dest], vec![register_source])
             },
             Instruction::BinaryOp(x64BinaryOp::test, register1, register2, _)
-            | Instruction::BinaryOp(x64BinaryOp::cmp, register1, register2, _) => {
+            | Instruction::BinaryOp(x64BinaryOp::cmp, register1, register2, _)
+            | Instruction::Store(register1, register2, _, _) => {
                 (vec![], vec![register1, register2])
             },
             Instruction::BinaryOp(x64BinaryOp::div, register1, register2, _) => {
@@ -86,15 +87,10 @@ impl Instruction {
             Instruction::BinaryOp(_, register1, register2, _) => {
                 (vec![register2], vec![register1, register2])
             },
-            Instruction::Store(register1, register2, _, _) => {
-                (vec![], vec![register1, register2])
-            },
             Instruction::Call(_, n, _) => {
                 let mut v = Vec::new();
                 let p = Register::parameters();
-                for i in 0..n {
-                    v.push(p[i]);
-                }
+                v.extend(p.iter().take(n));
                 (Register::caller_saved(),v)
             }
             Instruction::Branch(_, _ , _)
@@ -180,16 +176,16 @@ pub struct FuncDefinition {
 impl FuncDefinition {
     fn print_body(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut visited = HashSet::<Label>::new();
-        self.visit(&mut visited, self.entry.clone(), f)
+        self.visit(&mut visited, self.entry, f)
     }
 
     fn visit(& self, visited: & mut HashSet<Label>, l: Label, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if visited.contains(&l) {
             return Ok(());
         }
-        visited.insert(l.clone());
-        if let (Some(instruction),Some(live_info)) = (self.body.get(&l),self.liveness.get(&l)) {
-            try!(write!(f, "    {}: {}\n", l, instruction/*, live_info*/));
+        visited.insert(l);
+        if let (Some(instruction), Some(live_info)) = (self.body.get(&l),self.liveness.get(&l)) {
+            try!(write!(f, "    {}: {} {:?}\n", l, instruction, live_info));
             for s in instruction.successors() {
                 try!(self.visit(visited, s, f));
             }

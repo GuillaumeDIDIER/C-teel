@@ -142,8 +142,8 @@ impl FuncDefinitionBuilder {
             },
             rtl::Instruction::Call(result, name, params, next) => {
                 let mut entry = entry;
-                for i in 0..params.len(){
-                    entry = self.add_parameter(i, params[i], entry)
+                for (i, param) in params.iter().cloned().enumerate(){
+                    entry = self.add_parameter(i, param, entry)
                 }
                 let tmp = self.label_allocator.fresh();
                 self.new_body.insert(entry, Instruction::Call(name, params.len(), tmp));

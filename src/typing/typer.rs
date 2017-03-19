@@ -127,13 +127,13 @@ impl tast::File {
 }
 
 impl tast::Struct {
-    fn new(name: &String,
+    fn new(name: &str,
         members: Vec<past::Node<past::DeclVar>>,
         types: &HashMap<String, tast::Struct>
     ) -> Result<tast::Struct, String> {
         let mut s = tast::Struct{members: Vec::new(), index: HashMap::new()};
         let mut types = types.clone();
-        types.insert(name.clone(), s.clone()); // This enables reference to the struct itself as a pointer in fields.
+        types.insert(String::from(name), s.clone()); // This enables reference to the struct itself as a pointer in fields.
         for n_member in members {
             let vars = tast::Var::type_declaration(n_member.t, &types);
             match vars {
@@ -193,7 +193,7 @@ impl tast::Var {
 }
 
 fn type_parameters(
-    params: &Vec<past::Node<past::Param>>,
+    params: &[past::Node<past::Param>],
     types: &HashMap<String, tast::Struct>
 ) -> Result<Vec<tast::Type>, String> {
     let mut res = Vec::new();
@@ -245,7 +245,7 @@ impl tast::Function {
                 }
             }
         }
-        let typed_bloc = match tast::Bloc::type_bloc(blk, types, symbols, &vec![globals, &vars], &typ) {
+        let typed_bloc = match tast::Bloc::type_bloc(blk, types, symbols, &[globals, &vars], &typ) {
             Ok(blk) => blk,
             Err(e) => {return Err(e);}
         };
@@ -263,14 +263,14 @@ impl tast::Bloc {
     fn type_bloc(bloc: past::Bloc,
         types: &HashMap<String, tast::Struct>,
         symbols: &HashMap<String, tast::FunctionProto>,
-        globals: &Vec<&HashMap<String, tast::Var>>,
+        globals: &[&HashMap<String, tast::Var>],
         ret_type: &tast::Type,
     ) -> Result<tast::Bloc, String> {
         let (decls, stmts) = bloc;
         // 1 type declarations,
         let mut typed_decls = HashMap::new();
         for decl in decls { // Loop content should be factored into a function.
-            let vars = tast::Var::type_declaration(decl.t, &types);
+            let vars = tast::Var::type_declaration(decl.t, types);
             match vars {
                 Err(e) => {
                     return Err(e);
@@ -291,10 +291,10 @@ impl tast::Bloc {
         // 2 type statements.
         let mut typed_stmts = Vec::new();
         {
-            let mut stack = globals.clone();
+            let mut stack = Vec::from(globals);
             stack.push(&typed_decls);
             for node_stmt in stmts {
-                match tast::Statement::type_statement(node_stmt.t, types, symbols, &stack, &ret_type){
+                match tast::Statement::type_statement(node_stmt.t, types, symbols, &stack, ret_type){
                     Err(e) => {return Err(e)},
                     Ok(stmt) => {typed_stmts.push(stmt);},
                 }
@@ -312,7 +312,7 @@ impl tast::Statement { // Fixme : return types !!!
     fn type_statement(stmt: past::Statement,
         types: &HashMap<String, tast::Struct>,
         symbols: &HashMap<String, tast::FunctionProto>,
-        vars: &Vec<&HashMap<String, tast::Var>>,
+        vars: &[&HashMap<String, tast::Var>],
         ret_type: &tast::Type,
     ) -> Result<tast::Statement, String> {
         match stmt {
@@ -388,8 +388,8 @@ impl tast::Statement { // Fixme : return types !!!
 
 impl tast::ExprKind {
     pub fn lvalue(&self) -> bool {
-        match self {
-            &tast::ExprKind::Lvalue(_) |  &tast::ExprKind::MembDeref(..) => true,
+        match *self {
+            tast::ExprKind::Lvalue(_) |  tast::ExprKind::MembDeref(..) => true,
             _ => false,
         }
     }
@@ -399,7 +399,7 @@ impl tast::Expression {
     fn type_expression(expr: past::Expression,
         types: &HashMap<String, tast::Struct>,
         symbols: &HashMap<String, tast::FunctionProto>,
-        vars: &Vec<&HashMap<String, tast::Var>>,
+        vars: &[&HashMap<String, tast::Var>],
     ) -> Result<tast::Expression, String> {
         match expr {
             past::Expression::Int(value) => {
@@ -428,7 +428,7 @@ impl tast::Expression {
                             if let Some(typ) = types.get(&s) {
                                 if let Some(i) = typ.index.get(&node_ident.t) {
                                     Ok(tast::Expression::new(
-                                        typ.members[i.clone()].typ.clone(),
+                                        typ.members[*i].typ.clone(),
                                         tast::ExprKind::MembDeref(Box::new(expr), node_ident.t)
                                     ))
                                 } else {
@@ -564,7 +564,7 @@ impl tast::Expression {
 
             },
             past::Expression::Sizeof(node_ident) => {
-                if let Some(_) =  types.get(&node_ident.t){
+                if types.get(&node_ident.t).is_some() {
                     Ok(tast::Expression::new(
                         tast::Type::Int,
                         tast::ExprKind::Sizeof(node_ident.t)
