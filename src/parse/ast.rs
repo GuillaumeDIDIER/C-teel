@@ -1,13 +1,13 @@
 
 pub type Ident = String;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Location {
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node<T> {
     pub start: Location,
     pub stop: Location,
@@ -37,13 +37,13 @@ pub enum BinaryOp {
     Or,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Param {
     Int(Node<Ident>),
     Struct(Node<Ident>, Node<Ident>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Expression {
     Int(i64),
     Ident(Node<Ident>),
@@ -59,14 +59,14 @@ pub type DeclType = (Node<Ident>, Vec<Node<DeclVar>>);
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DeclVar {
     Int(Vec<Node<Ident>>),
     Struct(Node<Ident>, Vec<Node<Ident>>),
 }
 
 // Function declaration
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DeclFunc {
     Int(Node<Ident>, Vec<Node<Param>>, Node<Bloc>),
     Struct(Node<Ident>, Node<Ident>, Vec<Node<Param>>, Node<Bloc>),
@@ -74,7 +74,7 @@ pub enum DeclFunc {
 
 
 // Declarations
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Declaration {
     Var(Node<DeclVar>),
     Type(Node<DeclType>),
@@ -84,7 +84,7 @@ pub enum Declaration {
 
 pub type Bloc = (Vec<Node<DeclVar>>, Vec<Node<Statement>>);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Statement {
     Expr(Node<Expression>),
     If(Node<Expression>, Box<Node<Statement>>),
