@@ -123,19 +123,19 @@ impl Graph {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else if let Some(reg) = self.todo.iter().find(|&reg_ref| {self.possible_colors[reg_ref].len() == 1}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap())) // Missing a case here !!!
-                } /*else if let Some(reg) = self.todo.iter().find(| & reg_ref| { // This is currently broken
+                } else if let Some(reg) = self.todo.iter().find(| & reg_ref| { // This is currently broken
                     let prefs = &self.graph[reg_ref].prefs;
-                    prefs.iter().find(|& pref_ref| { self.result.get(pref_ref).is_some()}).is_some()
+                    prefs.iter().find(|& pref_ref| { if let Some(&Operand::Reg(ref c)) = self.result.get(pref_ref) {self.possible_colors[reg_ref].contains(c)} else {false}}).is_some()
                 }) {
                     let pref = &self.graph[reg].prefs.iter().find(|& pref_ref| {
                         match self.result.get(pref_ref) {
-                            Some(&Operand::Reg(_)) => true,
+                            Some(&Operand::Reg(ref c)) => self.possible_colors[reg].contains(c),
                             _ => false,
                         }
                     }).unwrap();
                     let color = match *self.result.get(pref).unwrap(){Operand::Reg(c) => c, _=>{panic!("Wierd thing occured");}};
                     (*reg, Some(color))
-                } */else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
+                } else if let Some(reg) = self.todo.iter().find(|& reg_ref| {self.possible_colors[reg_ref].len() > 0}) {
                     (*reg, Some(*self.possible_colors[reg].iter().nth(0).unwrap()))
                 } else {
                     let reg = *self.todo.iter().nth(0).unwrap();
